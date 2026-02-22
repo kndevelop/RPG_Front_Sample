@@ -1,0 +1,40 @@
+body {
+  margin: 0;
+  height: 100vh;
+  background: #f5f6f8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+.wrapper {
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+}
+
+.card {
+  margin: 0 auto;
+  width: 500px;
+  padding: 32px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+h1 {
+  margin-bottom: 32px;
+}
+
+.footer {
+  margin-top: 40px;
+}
+
+.link {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #3f51b5;
+  cursor: pointer;
+}

@@ -1,0 +1,28 @@
+<div class="wrapper">
+  <h1>ログイン</h1>
+
+  <mat-card class="card">
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>メールアドレス</mat-label>
+      <input matInput type="email">
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>パスワード</mat-label>
+      <input matInput type="password">
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" id="login"  routerLink="/home">
+      ログイン
+    </button>
+
+    <div class="link" routerLink="/auth/password">パスワードをお忘れの方はこちら</div>
+  </mat-card>
+
+  <div class="footer">
+    <div>アカウントをお持ちでない方は</div>
+    <button mat-stroked-button color="primary" id="register" routerLink="/auth/register">
+      アカウント作成
+    </button>
+  </div>
+</div>

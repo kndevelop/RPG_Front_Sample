@@ -1,0 +1,16 @@
+button.signup {
+  margin-top: 12px;
+  padding: 10px 20px;
+  background: white;
+  border: 1px solid #4caf50;
+  color: #4caf50;
+  border-radius: 4px;
+}
+
+button {
+  margin-top: 10px;
+}
+
+.footer {
+  margin-top: 40px;
+}
