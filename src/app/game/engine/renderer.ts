@@ -26,8 +26,8 @@ export class Renderer {
 
   /** プレイヤー画像をロードして Sprite を生成 */
   private loadPlayerTextures(): void {
-    this.textureRight = PIXI.Texture.from('assets/player/test.png');
-    this.textureLeft = PIXI.Texture.from('assets/player/test_reverse.png');
+    this.textureRight = PIXI.Texture.from('assets/player/player.png');
+    this.textureLeft = PIXI.Texture.from('assets/player/player_reverse.png');
 
     this.playerSprite = new PIXI.Sprite(this.textureRight);
     this.playerSprite.anchor.set(0.5, 1.0); // 足元を基準点に
@@ -110,7 +110,12 @@ export class Renderer {
   }
 
   /** フォールバック：カラー塗りつぶしタイル */
-  private drawColorTile(x: number, y: number, color: number, type: TileType): void {
+  private drawColorTile(
+    x: number,
+    y: number,
+    color: number,
+    type: TileType
+  ): void {
     const tile = new PIXI.Graphics();
 
     // 水タイルは少し透明に
