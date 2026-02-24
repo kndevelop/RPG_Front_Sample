@@ -13,71 +13,106 @@ export const TILE_CONFIG: Record<TileType, {
   ROAD: { walkable: true, color: 0xBDBDBD, texturePath: 'assets/tiles/road.png' },
 };
 
+export type LayerType = 'WALKABLE' | 'IMPASSABLE' | 'FOREGROUND';
+
 export class GameMap {
 
   width = 20;
   height = 20;
 
-  /** タイルデータ（2次元配列: tiles[y][x]） */
-  tiles: TileType[][];
+  /** レイヤー別タイルデータ */
+  layers: Record<LayerType, (TileType | null)[][]>;
 
   constructor() {
-    this.tiles = this.buildDefaultMap();
+    this.layers = {
+      WALKABLE: this.createEmptyLayer(),
+      IMPASSABLE: this.createEmptyLayer(),
+      FOREGROUND: this.createEmptyLayer(),
+    };
+    this.buildDefaultMap();
   }
 
-  getTile(x: number, y: number): TileType | null {
+  private createEmptyLayer(): (TileType | null)[][] {
+    return Array.from({ length: this.height }, () =>
+      Array(this.width).fill(null)
+    );
+  }
+
+  /** 特定のレイヤーにタイルを配置 */
+  setTile(layer: LayerType, x: number, y: number, type: TileType | null): void {
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
+    this.layers[layer][y][x] = type;
+  }
+
+  getTile(layer: LayerType, x: number, y: number): TileType | null {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
-    return this.tiles[y][x];
+    return this.layers[layer][y][x];
   }
 
+  /** 指定した位置が移動可能かどうか */
   isWalkable(x: number, y: number): boolean {
-    const tile = this.getTile(x, y);
-    if (tile === null) return false;
-    return TILE_CONFIG[tile].walkable;
+    // 範囲外は不可
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) return false;
+
+    // 不可侵レイヤーにタイルがある場合は不可
+    if (this.layers.IMPASSABLE[y][x] !== null) return false;
+
+    // 歩行可能レイヤーにタイルがある場合のみ移動可能（現状の仕様に合わせるなら）
+    const walkableTile = this.layers.WALKABLE[y][x];
+    if (walkableTile === null) return false;
+
+    return TILE_CONFIG[walkableTile].walkable;
   }
 
   /** デフォルトのサンプルマップを生成 */
-  private buildDefaultMap(): TileType[][] {
-    const map: TileType[][] = Array.from({ length: this.height }, () =>
-      Array(this.width).fill('GRASS') as TileType[]
-    );
+  private buildDefaultMap(): void {
+    // 地面（WALKABLE）を敷き詰める
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        this.setTile('WALKABLE', x, y, 'GRASS');
+      }
+    }
 
-    // 外周を壁で囲む
+    // 外周を壁（IMPASSABLE）で囲む
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
         if (x === 0 || x === this.width - 1 || y === 0 || y === this.height - 1) {
-          map[y][x] = 'WALL';
+          this.setTile('IMPASSABLE', x, y, 'WALL');
         }
       }
     }
 
-    // 中央付近に水（川）
+    // 中央付近に水（IMPASSABLE）
     for (let y = 3; y <= 7; y++) {
-      map[y][8] = 'WATER';
-      map[y][9] = 'WATER';
-      map[y][10] = 'WATER';
+      this.setTile('IMPASSABLE', 8, y, 'WATER');
+      this.setTile('IMPASSABLE', 9, y, 'WATER');
+      this.setTile('IMPASSABLE', 10, y, 'WATER');
     }
 
-    // 橋（道）
-    map[5][8] = 'ROAD';
-    map[5][9] = 'ROAD';
-    map[5][10] = 'ROAD';
+    // 橋（WALKABLEでIMPASSABLEを上書きできるようにするため、ここではIMPASSABLEをクリアしてWALKABLEにROADを置く）
+    // ※現状のisWalkableロジック「IMPASSABLEがあれば不可」に合わせる
+    for (let x = 8; x <= 10; x++) {
+      this.setTile('IMPASSABLE', x, 5, null);
+      this.setTile('WALKABLE', x, 5, 'ROAD');
+    }
 
-    // 壁のブロック（建物など）
+    // 壁のブロック（IMPASSABLE）
     for (let y = 10; y <= 13; y++) {
       for (let x = 5; x <= 7; x++) {
-        map[y][x] = 'WALL';
+        this.setTile('IMPASSABLE', x, y, 'WALL');
       }
     }
 
-    // 通路（道）
+    // テスト：手前レイヤー（FOREGROUND）
+    // 本来は木の上の部分などを想定するが、ここではWALLを浮かせてみる
+    this.setTile('FOREGROUND', 12, 12, 'WALL');
+
+    // 通路（WALKABLE）
     for (let x = 1; x < 19; x++) {
-      map[1][x] = 'ROAD';
+      this.setTile('WALKABLE', x, 1, 'ROAD');
     }
     for (let y = 1; y < 19; y++) {
-      map[y][1] = 'ROAD';
+      this.setTile('WALKABLE', 1, y, 'ROAD');
     }
-
-    return map;
   }
 }

@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { IsoMath } from './iso-math';
-import { GameMap, TileType, TILE_CONFIG } from './game-map';
+import { GameMap, TileType, TILE_CONFIG, LayerType } from './game-map';
 import { Player } from './player';
 import { Camera } from './camera';
 
@@ -26,8 +26,8 @@ export class Renderer {
 
   /** プレイヤー画像をロードして Sprite を生成 */
   private loadPlayerTextures(): void {
-    this.textureRight = PIXI.Texture.from('assets/player/player.png');
-    this.textureLeft = PIXI.Texture.from('assets/player/player_reverse.png');
+    this.textureRight = PIXI.Texture.from('assets/player/player_right.png');
+    this.textureLeft = PIXI.Texture.from('assets/player/player_left.png');
 
     this.playerSprite = new PIXI.Sprite(this.textureRight);
     this.playerSprite.anchor.set(0.5, 1.0); // 足元を基準点に
@@ -70,33 +70,13 @@ export class Renderer {
 
     const offset = camera.getOffset(player);
 
-    // アイソメトリックはY→X順に描画（奥から手前）
-    for (let y = 0; y < map.height; y++) {
-      for (let x = 0; x < map.width; x++) {
+    // 1. WALKABLE レイヤーの描画
+    this.renderLayer(map, 'WALKABLE', centerX, centerY, offset);
 
-        const tileType = map.getTile(x, y) ?? 'GRASS';
-        const config = TILE_CONFIG[tileType];
-        const pos = this.iso.mapToScreen(x, y);
+    // 2. IMPASSABLE レイヤーの描画
+    this.renderLayer(map, 'IMPASSABLE', centerX, centerY, offset);
 
-        const screenX = centerX + pos.x - offset.x;
-        const screenY = centerY + pos.y - offset.y;
-
-        const tex = this.tileTextures[tileType];
-
-        if (tileType === 'WALL') {
-          // 壁タイルは立体的に描画（上面＋側面）
-          this.drawWallTile(screenX, screenY, config.color, config.wallColor ?? 0x3E2723);
-        } else if (tex && tex.valid) {
-          // テクスチャが有効な場合はスプライトで描画
-          this.drawTexturedTile(screenX, screenY, tex);
-        } else {
-          // フォールバック：カラー塗りつぶし
-          this.drawColorTile(screenX, screenY, config.color, tileType);
-        }
-      }
-    }
-
-    // --- プレイヤースプライト描画 ---
+    // 3. プレイヤースプライト描画
     if (this.playerSprite && this.textureRight && this.textureLeft) {
       const newTexture = player.facing === 'right'
         ? this.textureRight
@@ -107,7 +87,37 @@ export class Renderer {
       this.playerSprite.x = centerX;
       this.playerSprite.y = centerY + 16;
     }
+
+    // 4. FOREGROUND レイヤーの描画
+    this.renderLayer(map, 'FOREGROUND', centerX, centerY, offset);
   }
+
+  /** 指定したレイヤーを描画するヘルパー */
+  private renderLayer(map: GameMap, layer: LayerType, centerX: number, centerY: number, offset: { x: number, y: number }) {
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        const tileType = map.getTile(layer, x, y);
+        if (!tileType) continue;
+
+        const config = TILE_CONFIG[tileType];
+        const pos = this.iso.mapToScreen(x, y);
+
+        const screenX = centerX + pos.x - offset.x;
+        const screenY = centerY + pos.y - offset.y;
+
+        const tex = this.tileTextures[tileType];
+
+        if (tileType === 'WALL') {
+          this.drawWallTile(screenX, screenY, config.color, config.wallColor ?? 0x3E2723);
+        } else if (tex && tex.valid) {
+          this.drawTexturedTile(screenX, screenY, tex);
+        } else {
+          this.drawColorTile(screenX, screenY, config.color, tileType);
+        }
+      }
+    }
+  }
+
 
   /** フォールバック：カラー塗りつぶしタイル */
   private drawColorTile(
