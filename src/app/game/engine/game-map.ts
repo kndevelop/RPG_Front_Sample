@@ -64,55 +64,50 @@ export class GameMap {
     return TILE_CONFIG[walkableTile].walkable;
   }
 
+  /** 指定した範囲をタイルで埋める（長方形） */
+  fillRect(layer: LayerType, x: number, y: number, w: number, h: number, type: TileType | null): void {
+    for (let iy = y; iy < y + h; iy++) {
+      for (let ix = x; ix < x + w; ix++) {
+        this.setTile(layer, ix, iy, type);
+      }
+    }
+  }
+
+  /** 水平または垂直の線を引く */
+  fillLine(layer: LayerType, x: number, y: number, length: number, direction: 'horizontal' | 'vertical', type: TileType | null): void {
+    for (let i = 0; i < length; i++) {
+      const ix = direction === 'horizontal' ? x + i : x;
+      const iy = direction === 'vertical' ? y + i : y;
+      this.setTile(layer, ix, iy, type);
+    }
+  }
+
   /** デフォルトのサンプルマップを生成 */
   private buildDefaultMap(): void {
     // 地面（WALKABLE）を敷き詰める
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        this.setTile('WALKABLE', x, y, 'GRASS');
-      }
-    }
+    this.fillRect('WALKABLE', 0, 0, this.width, this.height, 'GRASS');
 
     // 外周を壁（IMPASSABLE）で囲む
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        if (x === 0 || x === this.width - 1 || y === 0 || y === this.height - 1) {
-          this.setTile('IMPASSABLE', x, y, 'WALL');
-        }
-      }
-    }
+    this.fillLine('IMPASSABLE', 0, 0, this.width, 'horizontal', 'WALL');
+    this.fillLine('IMPASSABLE', 0, this.height - 1, this.width, 'horizontal', 'WALL');
+    this.fillLine('IMPASSABLE', 0, 0, this.height, 'vertical', 'WALL');
+    this.fillLine('IMPASSABLE', this.width - 1, 0, this.height, 'vertical', 'WALL');
 
     // 中央付近に水（IMPASSABLE）
-    for (let y = 3; y <= 7; y++) {
-      this.setTile('IMPASSABLE', 8, y, 'WATER');
-      this.setTile('IMPASSABLE', 9, y, 'WATER');
-      this.setTile('IMPASSABLE', 10, y, 'WATER');
-    }
+    this.fillRect('IMPASSABLE', 8, 3, 3, 5, 'WATER');
 
-    // 橋（WALKABLEでIMPASSABLEを上書きできるようにするため、ここではIMPASSABLEをクリアしてWALKABLEにROADを置く）
-    // ※現状のisWalkableロジック「IMPASSABLEがあれば不可」に合わせる
-    for (let x = 8; x <= 10; x++) {
-      this.setTile('IMPASSABLE', x, 5, null);
-      this.setTile('WALKABLE', x, 5, 'ROAD');
-    }
+    // 橋（IMPASSABLEをクリアしてWALKABLEにROADを置く）
+    this.fillRect('IMPASSABLE', 8, 5, 3, 1, null);
+    this.fillRect('WALKABLE', 8, 5, 3, 1, 'ROAD');
 
-    // 壁のブロック（IMPASSABLE）
-    for (let y = 10; y <= 13; y++) {
-      for (let x = 5; x <= 7; x++) {
-        this.setTile('IMPASSABLE', x, y, 'WALL');
-      }
-    }
+    // 建物（IMPASSABLE）
+    this.fillRect('IMPASSABLE', 5, 10, 3, 4, 'WALL');
 
     // テスト：手前レイヤー（FOREGROUND）
-    // 本来は木の上の部分などを想定するが、ここではWALLを浮かせてみる
     this.setTile('FOREGROUND', 12, 12, 'WALL');
 
     // 通路（WALKABLE）
-    for (let x = 1; x < 19; x++) {
-      this.setTile('WALKABLE', x, 1, 'ROAD');
-    }
-    for (let y = 1; y < 19; y++) {
-      this.setTile('WALKABLE', 1, y, 'ROAD');
-    }
+    this.fillLine('WALKABLE', 1, 1, this.width - 2, 'horizontal', 'ROAD');
+    this.fillLine('WALKABLE', 1, 1, this.height - 2, 'vertical', 'ROAD');
   }
 }

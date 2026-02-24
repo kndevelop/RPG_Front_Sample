@@ -1,9 +1,11 @@
+import { GAME_CONSTANTS } from './constants';
+
 export class IsoMath {
 
   constructor(
-    public tileWidth: number,
-    public tileHeight: number
-  ) {}
+    public tileWidth = GAME_CONSTANTS.TILE_WIDTH,
+    public tileHeight = GAME_CONSTANTS.TILE_HEIGHT
+  ) { }
 
   mapToScreen(x: number, y: number) {
     return {
@@ -13,8 +15,8 @@ export class IsoMath {
   }
 
   screenToMap(sx: number, sy: number) {
-    const mx = (sx / (this.tileWidth/2) + sy / (this.tileHeight/2)) / 2;
-    const my = (sy / (this.tileHeight/2) - sx / (this.tileWidth/2)) / 2;
+    const mx = (sx / (this.tileWidth / 2) + sy / (this.tileHeight / 2)) / 2;
+    const my = (sy / (this.tileHeight / 2) - sx / (this.tileWidth / 2)) / 2;
     return { x: Math.floor(mx), y: Math.floor(my) };
   }
 }

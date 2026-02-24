@@ -7,7 +7,7 @@ import { Renderer } from './renderer';
 
 export class GameEngine {
 
-  private iso = new IsoMath(64, 32);
+  private iso = new IsoMath();
   private player = new Player();
   private map = new GameMap();
   private camera = new Camera(this.iso);

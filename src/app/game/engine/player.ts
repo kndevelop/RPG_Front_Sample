@@ -1,3 +1,5 @@
+import { GAME_CONSTANTS } from './constants';
+
 export type PlayerFacing = 'right' | 'left';
 
 export class Player {
@@ -8,9 +10,9 @@ export class Player {
   targetX = 10;
   targetY = 10;
 
-  speed = 4;
+  speed = GAME_CONSTANTS.PLAYER_DEFAULT_SPEED;
 
-  /** プレイヤーの向き: 右下方向='right', 左上方向='left' */
+  /** プレイヤーの向き: 右方向='right', 左方向='left' */
   facing: PlayerFacing = 'right';
 
   update(delta: number) {
@@ -19,7 +21,7 @@ export class Player {
     const dy = this.targetY - this.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist > 0.01) {
+    if (dist > GAME_CONSTANTS.PLAYER_STOP_THRESHOLD) {
       const move = this.speed * delta;
 
       if (move >= dist) {

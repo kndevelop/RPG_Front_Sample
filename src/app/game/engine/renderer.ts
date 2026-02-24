@@ -3,6 +3,7 @@ import { IsoMath } from './iso-math';
 import { GameMap, TileType, TILE_CONFIG, LayerType } from './game-map';
 import { Player } from './player';
 import { Camera } from './camera';
+import { GAME_CONSTANTS, Point } from './constants';
 
 export class Renderer {
 
@@ -30,14 +31,14 @@ export class Renderer {
     this.textureLeft = PIXI.Texture.from('assets/player/player_left.png');
 
     this.playerSprite = new PIXI.Sprite(this.textureRight);
-    this.playerSprite.anchor.set(0.5, 1.0); // 足元を基準点に
-    this.playerSprite.width = 50;
-    this.playerSprite.height = 100;
+    this.playerSprite.anchor.set(GAME_CONSTANTS.PLAYER_ANCHOR_X, GAME_CONSTANTS.PLAYER_ANCHOR_Y);
+    this.playerSprite.width = GAME_CONSTANTS.PLAYER_WIDTH;
+    this.playerSprite.height = GAME_CONSTANTS.PLAYER_HEIGHT;
 
     this.app.stage.addChild(this.playerSprite);
   }
 
-  /** タイル用テクスチャをロード（失敗時は null でフォールバックカラー使用） */
+  /** タイル用テクスチャをロード */
   private loadTileTextures(): void {
     const types: TileType[] = ['GRASS', 'WATER', 'WALL', 'ROAD'];
     for (const type of types) {
@@ -46,106 +47,77 @@ export class Renderer {
         this.tileTextures[type] = null;
         continue;
       }
-      try {
-        const tex = PIXI.Texture.from(path);
-        // PIXI はエラーを非同期で発生させるため、初期状態では null に
-        // テクスチャが実際に破損していないか確認
-        if (tex && tex !== PIXI.Texture.EMPTY) {
-          this.tileTextures[type] = tex;
-        } else {
-          this.tileTextures[type] = null;
-        }
-      } catch {
-        this.tileTextures[type] = null;
-      }
+      // PIXI.Texture.from は即座に Texture オブジェクトを返すが、ロードは非同期。
+      // 初期状態で代入しておけば、ロード完了後に tex.valid が true になり、
+      // 次回以降の draw() でテクスチャが描画されるようになる。
+      this.tileTextures[type] = PIXI.Texture.from(path);
     }
   }
 
   draw(map: GameMap, player: Player, camera: Camera) {
-
     const centerX = this.app.screen.width / 2;
     const centerY = this.app.screen.height / 2;
 
     this.mapContainer.removeChildren();
-
     const offset = camera.getOffset(player);
 
-    // 1. WALKABLE レイヤーの描画
-    this.renderLayer(map, 'WALKABLE', centerX, centerY, offset);
+    const context = { centerX, centerY, offset };
 
-    // 2. IMPASSABLE レイヤーの描画
-    this.renderLayer(map, 'IMPASSABLE', centerX, centerY, offset);
-
-    // 3. プレイヤースプライト描画
-    if (this.playerSprite && this.textureRight && this.textureLeft) {
-      const newTexture = player.facing === 'right'
-        ? this.textureRight
-        : this.textureLeft;
-      if (this.playerSprite.texture !== newTexture) {
-        this.playerSprite.texture = newTexture;
-      }
-      this.playerSprite.x = centerX;
-      this.playerSprite.y = centerY + 16;
-    }
-
-    // 4. FOREGROUND レイヤーの描画
-    this.renderLayer(map, 'FOREGROUND', centerX, centerY, offset);
+    // レイヤー順に描画: 地面 -> 障害物 -> プレイヤー -> 手前
+    this.renderLayer(map, 'WALKABLE', context);
+    this.renderLayer(map, 'IMPASSABLE', context);
+    this.renderPlayerSprite(player, context);
+    this.renderLayer(map, 'FOREGROUND', context);
   }
 
-  /** 指定したレイヤーを描画するヘルパー */
-  private renderLayer(map: GameMap, layer: LayerType, centerX: number, centerY: number, offset: { x: number, y: number }) {
+  private renderPlayerSprite(player: Player, { centerX, centerY }: any) {
+    if (!this.playerSprite || !this.textureRight || !this.textureLeft) return;
+
+    this.playerSprite.texture = player.facing === 'right' ? this.textureRight : this.textureLeft;
+    this.playerSprite.x = centerX;
+    this.playerSprite.y = centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET;
+  }
+
+  private renderLayer(map: GameMap, layer: LayerType, { centerX, centerY, offset }: any) {
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
         const tileType = map.getTile(layer, x, y);
         if (!tileType) continue;
 
-        const config = TILE_CONFIG[tileType];
         const pos = this.iso.mapToScreen(x, y);
-
         const screenX = centerX + pos.x - offset.x;
         const screenY = centerY + pos.y - offset.y;
 
-        const tex = this.tileTextures[tileType];
-
-        if (tileType === 'WALL') {
-          this.drawWallTile(screenX, screenY, config.color, config.wallColor ?? 0x3E2723);
-        } else if (tex && tex.valid) {
-          this.drawTexturedTile(screenX, screenY, tex);
-        } else {
-          this.drawColorTile(screenX, screenY, config.color, tileType);
-        }
+        this.drawTile(tileType, screenX, screenY);
       }
     }
   }
 
+  private drawTile(type: TileType, x: number, y: number) {
+    const config = TILE_CONFIG[type];
+    const tex = this.tileTextures[type];
 
-  /** フォールバック：カラー塗りつぶしタイル */
-  private drawColorTile(
-    x: number,
-    y: number,
-    color: number,
-    type: TileType
-  ): void {
+    if (type === 'WALL') {
+      this.drawWallTile(x, y, config.color, config.wallColor ?? 0x3E2723);
+    } else if (tex && tex.valid) {
+      this.drawTexturedTile(x, y, tex);
+    } else {
+      this.drawColorTile(x, y, config.color, type);
+    }
+  }
+
+  private drawColorTile(x: number, y: number, color: number, type: TileType): void {
     const tile = new PIXI.Graphics();
-
-    // 水タイルは少し透明に
     const alpha = type === 'WATER' ? 0.85 : 1.0;
+    const { TILE_HALF_WIDTH: hw, TILE_HALF_HEIGHT: hh } = GAME_CONSTANTS;
+
     tile.beginFill(color, alpha);
-    tile.moveTo(0, 0);
-    tile.lineTo(32, 16);
-    tile.lineTo(0, 32);
-    tile.lineTo(-32, 16);
-    tile.closePath();
+    this.drawIsoDiamond(tile, hw, hh);
     tile.endFill();
 
-    // 草・道はタイルの縁を少し暗く
     if (type === 'GRASS' || type === 'ROAD') {
       tile.lineStyle(0.5, 0x00000033, 0.3);
-      tile.moveTo(0, 0);
-      tile.lineTo(32, 16);
-      tile.lineTo(0, 32);
-      tile.lineTo(-32, 16);
-      tile.closePath();
+      this.drawIsoDiamond(tile, hw, hh);
     }
 
     tile.x = x;
@@ -153,69 +125,63 @@ export class Renderer {
     this.mapContainer.addChild(tile);
   }
 
-  /** テクスチャスプライトタイル */
+  private drawIsoDiamond(g: PIXI.Graphics, hw: number, hh: number) {
+    g.moveTo(0, 0);
+    g.lineTo(hw, hh);
+    g.lineTo(0, hh * 2);
+    g.lineTo(-hw, hh);
+    g.closePath();
+  }
+
   private drawTexturedTile(x: number, y: number, tex: PIXI.Texture): void {
     const sprite = new PIXI.Sprite(tex);
     sprite.anchor.set(0.5, 0);
     sprite.x = x;
     sprite.y = y;
-    sprite.width = 64;  // tileWidth
-    sprite.height = 32; // tileHeight
+    sprite.width = GAME_CONSTANTS.TILE_WIDTH;
+    sprite.height = GAME_CONSTANTS.TILE_HEIGHT;
     this.mapContainer.addChild(sprite);
   }
 
-  /** 壁タイル（立体：上面＋前面2面） */
   private drawWallTile(x: number, y: number, topColor: number, sideColor: number): void {
-    const wallHeight = 20;
+    const { WALL_HEIGHT: wh, TILE_HALF_WIDTH: hw, TILE_HALF_HEIGHT: hh } = GAME_CONSTANTS;
 
     // 前面左
     const sideLeft = new PIXI.Graphics();
     sideLeft.beginFill(sideColor);
-    sideLeft.moveTo(-32, 16);
-    sideLeft.lineTo(0, 32);
-    sideLeft.lineTo(0, 32 + wallHeight);
-    sideLeft.lineTo(-32, 16 + wallHeight);
+    sideLeft.moveTo(-hw, hh);
+    sideLeft.lineTo(0, hh * 2);
+    sideLeft.lineTo(0, hh * 2 + wh);
+    sideLeft.lineTo(-hw, hh + wh);
     sideLeft.closePath();
-    sideLeft.endFill();
-    sideLeft.x = x;
-    sideLeft.y = y;
+    sideLeft.x = x; sideLeft.y = y;
     this.mapContainer.addChild(sideLeft);
 
     // 前面右
     const sideRight = new PIXI.Graphics();
     const rightColor = this.blendColor(sideColor, 0xFFFFFF, 0.15);
     sideRight.beginFill(rightColor);
-    sideRight.moveTo(0, 32);
-    sideRight.lineTo(32, 16);
-    sideRight.lineTo(32, 16 + wallHeight);
-    sideRight.lineTo(0, 32 + wallHeight);
+    sideRight.moveTo(0, hh * 2);
+    sideRight.lineTo(hw, hh);
+    sideRight.lineTo(hw, hh + wh);
+    sideRight.lineTo(0, hh * 2 + wh);
     sideRight.closePath();
-    sideRight.endFill();
-    sideRight.x = x;
-    sideRight.y = y;
+    sideRight.x = x; sideRight.y = y;
     this.mapContainer.addChild(sideRight);
 
-    // 上面（菱形）
+    // 上面
     const top = new PIXI.Graphics();
     top.beginFill(topColor);
-    top.moveTo(0, 0);
-    top.lineTo(32, 16);
-    top.lineTo(0, 32);
-    top.lineTo(-32, 16);
-    top.closePath();
-    top.endFill();
-    top.x = x;
-    top.y = y - wallHeight;
+    this.drawIsoDiamond(top, hw, hh);
+    top.x = x; top.y = y - wh;
     this.mapContainer.addChild(top);
   }
 
-  /** 2色をブレンドするユーティリティ */
   private blendColor(base: number, blend: number, factor: number): number {
     const r1 = (base >> 16) & 0xFF, g1 = (base >> 8) & 0xFF, b1 = base & 0xFF;
     const r2 = (blend >> 16) & 0xFF, g2 = (blend >> 8) & 0xFF, b2 = blend & 0xFF;
-    const r = Math.round(r1 + (r2 - r1) * factor);
-    const g = Math.round(g1 + (g2 - g1) * factor);
-    const b = Math.round(b1 + (b2 - b1) * factor);
-    return (r << 16) | (g << 8) | b;
+    return (Math.round(r1 + (r2 - r1) * factor) << 16) |
+      (Math.round(g1 + (g2 - g1) * factor) << 8) |
+      Math.round(b1 + (b2 - b1) * factor);
   }
 }
