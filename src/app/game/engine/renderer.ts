@@ -16,6 +16,11 @@ export class Renderer {
   /** タイルテクスチャキャッシュ */
   private tileTextures: Partial<Record<TileType, PIXI.Texture | null>> = {};
 
+  /** タイルスプライトのプール（再利用用） */
+  private spritePool: PIXI.Sprite[] = [];
+  /** 現在画面に表示されているスプライトのリスト */
+  private activeSprites: PIXI.Sprite[] = [];
+
   constructor(
     private app: PIXI.Application,
     private iso: IsoMath
@@ -47,18 +52,36 @@ export class Renderer {
         this.tileTextures[type] = null;
         continue;
       }
-      // PIXI.Texture.from は即座に Texture オブジェクトを返すが、ロードは非同期。
-      // 初期状態で代入しておけば、ロード完了後に tex.valid が true になり、
-      // 次回以降の draw() でテクスチャが描画されるようになる。
       this.tileTextures[type] = PIXI.Texture.from(path);
     }
+  }
+
+  /** プールからスプライトを取得、なければ新規作成 */
+  private getSpriteFromPool(tex: PIXI.Texture): PIXI.Sprite {
+    const sprite = this.spritePool.pop() || new PIXI.Sprite();
+    sprite.texture = tex;
+    sprite.visible = true;
+    sprite.alpha = 1.0;
+    sprite.tint = 0xFFFFFF;
+    this.activeSprites.push(sprite);
+    this.mapContainer.addChild(sprite);
+    return sprite;
+  }
+
+  /** 全てのスプライトをプールに戻す（非表示にする） */
+  private resetSprites() {
+    for (const sprite of this.activeSprites) {
+      sprite.visible = false;
+      this.spritePool.push(sprite);
+    }
+    this.activeSprites = [];
   }
 
   draw(map: GameMap, player: Player, camera: Camera) {
     const centerX = this.app.screen.width / 2;
     const centerY = this.app.screen.height / 2;
 
-    this.mapContainer.removeChildren();
+    this.resetSprites();
     const offset = camera.getOffset(player);
 
     const context = { centerX, centerY, offset };
@@ -98,9 +121,16 @@ export class Renderer {
     const tex = this.tileTextures[type];
 
     if (type === 'WALL') {
+      // 壁は依然として Graphics で描画される（現状の実装維持）
+      // ※将来的には Graphics もプール化可能
       this.drawWallTile(x, y, config.color, config.wallColor ?? 0x3E2723);
     } else if (tex && tex.valid) {
-      this.drawTexturedTile(x, y, tex);
+      const sprite = this.getSpriteFromPool(tex);
+      sprite.anchor.set(0.5, 0);
+      sprite.x = x;
+      sprite.y = y;
+      sprite.width = GAME_CONSTANTS.TILE_WIDTH;
+      sprite.height = GAME_CONSTANTS.TILE_HEIGHT;
     } else {
       this.drawColorTile(x, y, config.color, type);
     }
@@ -131,16 +161,6 @@ export class Renderer {
     g.lineTo(0, hh * 2);
     g.lineTo(-hw, hh);
     g.closePath();
-  }
-
-  private drawTexturedTile(x: number, y: number, tex: PIXI.Texture): void {
-    const sprite = new PIXI.Sprite(tex);
-    sprite.anchor.set(0.5, 0);
-    sprite.x = x;
-    sprite.y = y;
-    sprite.width = GAME_CONSTANTS.TILE_WIDTH;
-    sprite.height = GAME_CONSTANTS.TILE_HEIGHT;
-    this.mapContainer.addChild(sprite);
   }
 
   private drawWallTile(x: number, y: number, topColor: number, sideColor: number): void {

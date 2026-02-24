@@ -15,6 +15,8 @@ export const TILE_CONFIG: Record<TileType, {
 
 export type LayerType = 'WALKABLE' | 'IMPASSABLE' | 'FOREGROUND';
 
+import { INITIAL_MAP_DATA } from './map-data';
+
 export class GameMap {
 
   width = 20;
@@ -51,16 +53,10 @@ export class GameMap {
 
   /** 指定した位置が移動可能かどうか */
   isWalkable(x: number, y: number): boolean {
-    // 範囲外は不可
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return false;
-
-    // 不可侵レイヤーにタイルがある場合は不可
     if (this.layers.IMPASSABLE[y][x] !== null) return false;
-
-    // 歩行可能レイヤーにタイルがある場合のみ移動可能（現状の仕様に合わせるなら）
     const walkableTile = this.layers.WALKABLE[y][x];
     if (walkableTile === null) return false;
-
     return TILE_CONFIG[walkableTile].walkable;
   }
 
@@ -82,32 +78,20 @@ export class GameMap {
     }
   }
 
-  /** デフォルトのサンプルマップを生成 */
+  /** 外部データからマップを生成 */
   private buildDefaultMap(): void {
-    // 地面（WALKABLE）を敷き詰める
-    this.fillRect('WALKABLE', 0, 0, this.width, this.height, 'GRASS');
-
-    // 外周を壁（IMPASSABLE）で囲む
-    this.fillLine('IMPASSABLE', 0, 0, this.width, 'horizontal', 'WALL');
-    this.fillLine('IMPASSABLE', 0, this.height - 1, this.width, 'horizontal', 'WALL');
-    this.fillLine('IMPASSABLE', 0, 0, this.height, 'vertical', 'WALL');
-    this.fillLine('IMPASSABLE', this.width - 1, 0, this.height, 'vertical', 'WALL');
-
-    // 中央付近に水（IMPASSABLE）
-    this.fillRect('IMPASSABLE', 8, 3, 3, 5, 'WATER');
-
-    // 橋（IMPASSABLEをクリアしてWALKABLEにROADを置く）
-    this.fillRect('IMPASSABLE', 8, 5, 3, 1, null);
-    this.fillRect('WALKABLE', 8, 5, 3, 1, 'ROAD');
-
-    // 建物（IMPASSABLE）
-    this.fillRect('IMPASSABLE', 5, 10, 3, 4, 'WALL');
-
-    // テスト：手前レイヤー（FOREGROUND）
-    this.setTile('FOREGROUND', 12, 12, 'WALL');
-
-    // 通路（WALKABLE）
-    this.fillLine('WALKABLE', 1, 1, this.width - 2, 'horizontal', 'ROAD');
-    this.fillLine('WALKABLE', 1, 1, this.height - 2, 'vertical', 'ROAD');
+    for (const obj of INITIAL_MAP_DATA) {
+      switch (obj.shape) {
+        case 'point':
+          this.setTile(obj.layer, obj.x, obj.y, obj.type);
+          break;
+        case 'rect':
+          this.fillRect(obj.layer, obj.x, obj.y, obj.w!, obj.h!, obj.type);
+          break;
+        case 'line':
+          this.fillLine(obj.layer, obj.x, obj.y, obj.length!, obj.direction!, obj.type);
+          break;
+      }
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { GAME_CONSTANTS } from './constants';
+import { Vector2 } from './utils/vector';
 
 export type PlayerFacing = 'right' | 'left';
 
@@ -16,27 +17,24 @@ export class Player {
   facing: PlayerFacing = 'right';
 
   update(delta: number) {
-
     const dx = this.targetX - this.x;
     const dy = this.targetY - this.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dist = Vector2.distance({ x: this.x, y: this.y }, { x: this.targetX, y: this.targetY });
 
     if (dist > GAME_CONSTANTS.PLAYER_STOP_THRESHOLD) {
-      const move = this.speed * delta;
+      const moveAmount = this.speed * delta;
 
-      if (move >= dist) {
-        // 目標地点に到達または追い越す場合は、目標地点に直接セット
+      // 目標地点を超えないように移動
+      if (moveAmount >= dist) {
         this.x = this.targetX;
         this.y = this.targetY;
       } else {
-        // 通常の移動
-        this.x += (dx / dist) * move;
-        this.y += (dy / dist) * move;
+        const ratio = moveAmount / dist;
+        this.x += dx * ratio;
+        this.y += dy * ratio;
       }
 
-      // 画面上の左右方向（X軸）で判定
-      // dx - dy > 0: 画面右方向
-      // dx - dy < 0: 画面左方向
+      // 画面上の左右判定 (dx - dy)
       this.facing = (dx - dy) >= 0 ? 'right' : 'left';
     }
   }
