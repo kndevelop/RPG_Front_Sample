@@ -1,6 +1,7 @@
 import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import * as PIXI from 'pixi.js';
 import { GameEngine } from './engine/game-engine';
+import { AssetLoaderService } from './services/asset-loader.service';
 
 @Component({
   selector: 'game',
@@ -15,6 +16,8 @@ export class GameComponent implements AfterViewInit {
   @ViewChild('bgmAudio')
   bgmAudio!: ElementRef<HTMLAudioElement>;
 
+  constructor(private assetLoader: AssetLoaderService) { }
+
   ngAfterViewInit(): void {
 
     const app = new PIXI.Application({
@@ -25,7 +28,7 @@ export class GameComponent implements AfterViewInit {
 
     this.container.nativeElement.appendChild(app.view as any);
 
-    new GameEngine(app);
+    new GameEngine(app, this.assetLoader);
 
     // ブラウザの自動再生制限を回避するため、最初のクリックでBGMを再生
     const playBgm = () => {

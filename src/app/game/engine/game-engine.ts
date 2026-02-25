@@ -5,6 +5,7 @@ import { GameMap } from './game-map';
 import { Camera } from './camera';
 import { Renderer } from './renderer';
 import { InputManager } from './input-manager';
+import { AssetLoaderService } from '../services/asset-loader.service';
 
 export class GameEngine {
 
@@ -15,9 +16,9 @@ export class GameEngine {
   private renderer: Renderer;
   private input: InputManager;
 
-  constructor(private app: PIXI.Application) {
+  constructor(private app: PIXI.Application, private assetLoader: AssetLoaderService) {
 
-    this.renderer = new Renderer(app, this.iso);
+    this.renderer = new Renderer(app, this.iso, this.assetLoader);
     this.input = new InputManager(app, this.iso, this.camera, this.player);
 
     this.setupInput();

@@ -3,15 +3,14 @@ import { IsoMath } from './iso-math';
 import { GameMap, TileType, TILE_CONFIG, LayerType } from './game-map';
 import { Player } from './player';
 import { Camera } from './camera';
-import { GAME_CONSTANTS, Point } from './constants';
+import { GAME_CONSTANTS } from './constants';
+import { AssetLoaderService } from '../services/asset-loader.service';
 
 export class Renderer {
 
   mapContainer = new PIXI.Container();
 
   private playerSprite: PIXI.Sprite | null = null;
-  private textureRight: PIXI.Texture | null = null;
-  private textureLeft: PIXI.Texture | null = null;
 
   /** タイルテクスチャキャッシュ */
   private tileTextures: Partial<Record<TileType, PIXI.Texture | null>> = {};
@@ -23,19 +22,20 @@ export class Renderer {
 
   constructor(
     private app: PIXI.Application,
-    private iso: IsoMath
+    private iso: IsoMath,
+    private assetLoader: AssetLoaderService
   ) {
     app.stage.addChild(this.mapContainer);
-    this.loadPlayerTextures();
-    this.loadTileTextures();
+    this.initPlayer();
+    this.initTileTextures();
   }
 
-  /** プレイヤー画像をロードして Sprite を生成 */
-  private loadPlayerTextures(): void {
-    this.textureRight = PIXI.Texture.from('assets/player/player_right.png');
-    this.textureLeft = PIXI.Texture.from('assets/player/player_left.png');
+  /** プレイヤーの初期化 */
+  private initPlayer(): void {
+    const tex = this.assetLoader.getTexture('player_right');
+    if (!tex) return;
 
-    this.playerSprite = new PIXI.Sprite(this.textureRight);
+    this.playerSprite = new PIXI.Sprite(tex);
     this.playerSprite.anchor.set(GAME_CONSTANTS.PLAYER_ANCHOR_X, GAME_CONSTANTS.PLAYER_ANCHOR_Y);
     this.playerSprite.width = GAME_CONSTANTS.PLAYER_WIDTH;
     this.playerSprite.height = GAME_CONSTANTS.PLAYER_HEIGHT;
@@ -43,16 +43,17 @@ export class Renderer {
     this.app.stage.addChild(this.playerSprite);
   }
 
-  /** タイル用テクスチャをロード */
-  private loadTileTextures(): void {
-    const types: TileType[] = ['GRASS', 'WATER', 'WALL', 'ROAD'];
-    for (const type of types) {
-      const path = TILE_CONFIG[type].texturePath;
-      if (!path) {
-        this.tileTextures[type] = null;
-        continue;
-      }
-      this.tileTextures[type] = PIXI.Texture.from(path);
+  /** タイル用テクスチャを準備 */
+  private initTileTextures(): void {
+    const mapping: Record<TileType, string> = {
+      'GRASS': 'tile_grass',
+      'WATER': 'tile_water',
+      'WALL': 'tile_wall',
+      'ROAD': 'tile_road'
+    };
+
+    for (const [type, key] of Object.entries(mapping)) {
+      this.tileTextures[type as TileType] = this.assetLoader.getTexture(key);
     }
   }
 
@@ -94,9 +95,15 @@ export class Renderer {
   }
 
   private renderPlayerSprite(player: Player, { centerX, centerY }: any) {
-    if (!this.playerSprite || !this.textureRight || !this.textureLeft) return;
+    if (!this.playerSprite) return;
 
-    this.playerSprite.texture = player.facing === 'right' ? this.textureRight : this.textureLeft;
+    const key = player.facing === 'right' ? 'player_right' : 'player_left';
+    const tex = this.assetLoader.getTexture(key);
+
+    if (tex) {
+      this.playerSprite.texture = tex;
+    }
+
     this.playerSprite.x = centerX;
     this.playerSprite.y = centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET;
   }
