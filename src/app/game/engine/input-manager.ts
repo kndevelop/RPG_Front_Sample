@@ -3,6 +3,7 @@ import { Camera } from './camera';
 import { Player } from './player';
 import { IsoMath } from './iso-math';
 import { Point } from './constants';
+import { GameEventService } from '../services/game-event.service';
 
 /** 入力処理（クリック、将来的なキーボードなど）を管理するクラス */
 export class InputManager {
@@ -11,7 +12,8 @@ export class InputManager {
         private app: PIXI.Application,
         private iso: IsoMath,
         private camera: Camera,
-        private player: Player
+        private player: Player, // まだ screenToMap で Camera.getOffset(player) が必要なため保持
+        private gameEvent: GameEventService
     ) {
         this.setupEvents();
     }
@@ -20,7 +22,7 @@ export class InputManager {
         this.app.stage.eventMode = 'static';
         this.app.stage.on('pointerdown', (event: PIXI.FederatedPointerEvent) => {
             const mapPos = this.screenToMap(event.global.x, event.global.y);
-            this.handleMapClick(mapPos.x, mapPos.y);
+            this.gameEvent.requestMove(mapPos.x, mapPos.y);
         });
     }
 
@@ -34,12 +36,5 @@ export class InputManager {
         const worldY = screenY - centerY + offset.y;
 
         return this.iso.screenToMap(worldX, worldY);
-    }
-
-    /** マップがクリックされた時のコールバック（GameEngineなどで上書き可能にする予定） */
-    public onMapClick: (x: number, y: number) => void = () => { };
-
-    private handleMapClick(x: number, y: number) {
-        this.onMapClick(x, y);
     }
 }

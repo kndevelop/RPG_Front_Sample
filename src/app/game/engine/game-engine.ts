@@ -6,6 +6,7 @@ import { Camera } from './camera';
 import { Renderer } from './renderer';
 import { InputManager } from './input-manager';
 import { AssetLoaderService } from '../services/asset-loader.service';
+import { GameEventService } from '../services/game-event.service';
 
 export class GameEngine {
 
@@ -16,12 +17,17 @@ export class GameEngine {
   private renderer: Renderer;
   private input: InputManager;
 
-  constructor(private app: PIXI.Application, private assetLoader: AssetLoaderService) {
+  constructor(
+    private app: PIXI.Application,
+    private assetLoader: AssetLoaderService,
+    private gameEvent: GameEventService
+  ) {
 
     this.renderer = new Renderer(app, this.iso, this.assetLoader);
-    this.input = new InputManager(app, this.iso, this.camera, this.player);
+    this.input = new InputManager(app, this.iso, this.camera, this.player, this.gameEvent);
 
-    this.setupInput();
+    this.initMap();
+    this.setupSubscriptions();
 
     app.ticker.add((delta) => {
       const deltaSec = delta / 60;
@@ -30,12 +36,19 @@ export class GameEngine {
     });
   }
 
-  private setupInput() {
-    this.input.onMapClick = (x, y) => {
+  private initMap() {
+    const mapData = this.assetLoader.getData('map_default');
+    if (mapData) {
+      this.map.buildMap(mapData);
+    }
+  }
+
+  private setupSubscriptions() {
+    this.gameEvent.moveRequest$.subscribe(({ x, y }) => {
       if (this.map.isWalkable(x, y)) {
         this.player.targetX = x;
         this.player.targetY = y;
       }
-    };
+    });
   }
 }

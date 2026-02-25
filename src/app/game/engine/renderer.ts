@@ -39,8 +39,7 @@ export class Renderer {
     this.playerSprite.anchor.set(GAME_CONSTANTS.PLAYER_ANCHOR_X, GAME_CONSTANTS.PLAYER_ANCHOR_Y);
     this.playerSprite.width = GAME_CONSTANTS.PLAYER_WIDTH;
     this.playerSprite.height = GAME_CONSTANTS.PLAYER_HEIGHT;
-
-    this.app.stage.addChild(this.playerSprite);
+    // ここではまだコンテナに追加しない
   }
 
   /** タイル用テクスチャを準備 */
@@ -49,7 +48,8 @@ export class Renderer {
       'GRASS': 'tile_grass',
       'WATER': 'tile_water',
       'WALL': 'tile_wall',
-      'ROAD': 'tile_road'
+      'ROAD': 'tile_road',
+      'TREE': 'tile_tree'
     };
 
     for (const [type, key] of Object.entries(mapping)) {
@@ -82,16 +82,58 @@ export class Renderer {
     const centerX = this.app.screen.width / 2;
     const centerY = this.app.screen.height / 2;
 
+    this.mapContainer.removeChildren();
     this.resetSprites();
-    const offset = camera.getOffset(player);
 
+    const offset = camera.getOffset(player);
     const context = { centerX, centerY, offset };
 
-    // レイヤー順に描画: 地面 -> 障害物 -> プレイヤー -> 手前
-    this.renderLayer(map, 'WALKABLE', context);
-    this.renderLayer(map, 'IMPASSABLE', context);
-    this.renderPlayerSprite(player, context);
-    this.renderLayer(map, 'FOREGROUND', context);
+    // 1. 地面レイヤー (WALKABLE) を最背面に描画（これらはソート不要）
+    this.renderBasicLayer(map, 'WALKABLE', context);
+
+    // 2. Y-Sorting が必要なエンティティを収集
+    const renderItems: any[] = [];
+
+    const layers: LayerType[] = ['IMPASSABLE', 'FOREGROUND'];
+    for (const layer of layers) {
+      for (let y = 0; y < map.height; y++) {
+        for (let x = 0; x < map.width; x++) {
+          const tileType = map.getTile(layer, x, y);
+          if (!tileType) continue;
+
+          const pos = this.iso.mapToScreen(x, y);
+          const screenX = centerX + pos.x - offset.x;
+          const screenY = centerY + pos.y - offset.y;
+
+          renderItems.push({
+            type: 'tile',
+            tileType,
+            x: screenX,
+            y: screenY,
+            sortY: screenY + GAME_CONSTANTS.TILE_HEIGHT
+          });
+        }
+      }
+    }
+
+    const playerFootY = centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET + (GAME_CONSTANTS.PLAYER_HEIGHT * (1 - GAME_CONSTANTS.PLAYER_ANCHOR_Y));
+    renderItems.push({
+      type: 'player',
+      player,
+      x: centerX,
+      y: centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET,
+      sortY: playerFootY
+    });
+
+    renderItems.sort((a, b) => a.sortY - b.sortY);
+
+    for (const item of renderItems) {
+      if (item.type === 'tile') {
+        this.drawTile(item.tileType, item.x, item.y);
+      } else {
+        this.renderPlayerSprite(item.player, { centerX: item.x, centerY: item.y - GAME_CONSTANTS.PLAYER_Y_OFFSET });
+      }
+    }
   }
 
   private renderPlayerSprite(player: Player, { centerX, centerY }: any) {
@@ -106,9 +148,12 @@ export class Renderer {
 
     this.playerSprite.x = centerX;
     this.playerSprite.y = centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET;
+
+    // スプライトを mapContainer に追加（ソート順反映）
+    this.mapContainer.addChild(this.playerSprite);
   }
 
-  private renderLayer(map: GameMap, layer: LayerType, { centerX, centerY, offset }: any) {
+  private renderBasicLayer(map: GameMap, layer: LayerType, { centerX, centerY, offset }: any) {
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
         const tileType = map.getTile(layer, x, y);
@@ -128,16 +173,27 @@ export class Renderer {
     const tex = this.tileTextures[type];
 
     if (type === 'WALL') {
-      // 壁は依然として Graphics で描画される（現状の実装維持）
-      // ※将来的には Graphics もプール化可能
+      // 従来の壁描画（Graphics）はそのまま
       this.drawWallTile(x, y, config.color, config.wallColor ?? 0x3E2723);
     } else if (tex && tex.valid) {
       const sprite = this.getSpriteFromPool(tex);
-      sprite.anchor.set(0.5, 0);
-      sprite.x = x;
-      sprite.y = y;
-      sprite.width = GAME_CONSTANTS.TILE_WIDTH;
-      sprite.height = GAME_CONSTANTS.TILE_HEIGHT;
+
+      if (config.isVertical) {
+        // 垂直オブジェクト（木など）の描画
+        sprite.anchor.set(0.5, 1.0);
+        sprite.x = x;
+        sprite.y = y + GAME_CONSTANTS.TILE_HEIGHT;
+        sprite.width = GAME_CONSTANTS.TILE_WIDTH;
+        // アスペクト比を維持して高さを自動調整
+        sprite.height = (tex.height / tex.width) * GAME_CONSTANTS.TILE_WIDTH;
+      } else {
+        // 通常の地面タイル
+        sprite.anchor.set(0.5, 0);
+        sprite.x = x;
+        sprite.y = y;
+        sprite.width = GAME_CONSTANTS.TILE_WIDTH;
+        sprite.height = GAME_CONSTANTS.TILE_HEIGHT;
+      }
     } else {
       this.drawColorTile(x, y, config.color, type);
     }
@@ -173,6 +229,8 @@ export class Renderer {
   private drawWallTile(x: number, y: number, topColor: number, sideColor: number): void {
     const { WALL_HEIGHT: wh, TILE_HALF_WIDTH: hw, TILE_HALF_HEIGHT: hh } = GAME_CONSTANTS;
 
+    const wallContainer = new PIXI.Container();
+
     // 前面左
     const sideLeft = new PIXI.Graphics();
     sideLeft.beginFill(sideColor);
@@ -181,8 +239,7 @@ export class Renderer {
     sideLeft.lineTo(0, hh * 2 + wh);
     sideLeft.lineTo(-hw, hh + wh);
     sideLeft.closePath();
-    sideLeft.x = x; sideLeft.y = y;
-    this.mapContainer.addChild(sideLeft);
+    wallContainer.addChild(sideLeft);
 
     // 前面右
     const sideRight = new PIXI.Graphics();
@@ -193,15 +250,18 @@ export class Renderer {
     sideRight.lineTo(hw, hh + wh);
     sideRight.lineTo(0, hh * 2 + wh);
     sideRight.closePath();
-    sideRight.x = x; sideRight.y = y;
-    this.mapContainer.addChild(sideRight);
+    wallContainer.addChild(sideRight);
 
     // 上面
     const top = new PIXI.Graphics();
     top.beginFill(topColor);
     this.drawIsoDiamond(top, hw, hh);
-    top.x = x; top.y = y - wh;
-    this.mapContainer.addChild(top);
+    top.y = -wh;
+    wallContainer.addChild(top);
+
+    wallContainer.x = x;
+    wallContainer.y = y;
+    this.mapContainer.addChild(wallContainer);
   }
 
   private blendColor(base: number, blend: number, factor: number): number {

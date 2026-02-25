@@ -1,4 +1,4 @@
-export type TileType = 'GRASS' | 'WATER' | 'WALL' | 'ROAD';
+export type TileType = 'GRASS' | 'WATER' | 'WALL' | 'ROAD' | 'TREE';
 
 /** タイルタイプ別の設定 */
 export const TILE_CONFIG: Record<TileType, {
@@ -6,16 +6,28 @@ export const TILE_CONFIG: Record<TileType, {
   color: number;       // フォールバックカラー
   wallColor?: number;  // 壁の側面色
   texturePath?: string;
+  isVertical?: boolean; // 垂直オブジェクトかどうか
 }> = {
   GRASS: { walkable: true, color: 0x4CAF50, texturePath: 'assets/tiles/grass.png' },
   WATER: { walkable: false, color: 0x2196F3, texturePath: 'assets/tiles/water.png' },
-  WALL: { walkable: false, color: 0x795548, wallColor: 0x4E342E, texturePath: 'assets/tiles/wall.png' },
+  WALL: { walkable: false, color: 0x795548, wallColor: 0x4E342E, texturePath: 'assets/tiles/wall.png', isVertical: true },
   ROAD: { walkable: true, color: 0xBDBDBD, texturePath: 'assets/tiles/road.png' },
+  TREE: { walkable: false, color: 0x2E7D32, texturePath: 'assets/tiles/tree.png', isVertical: true },
 };
 
 export type LayerType = 'WALKABLE' | 'IMPASSABLE' | 'FOREGROUND';
 
-import { INITIAL_MAP_DATA } from './map-data';
+export interface MapObject {
+  layer: LayerType;
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  type: TileType | null;
+  shape: 'point' | 'rect' | 'line';
+  length?: number;
+  direction?: 'horizontal' | 'vertical';
+}
 
 export class GameMap {
 
@@ -31,7 +43,6 @@ export class GameMap {
       IMPASSABLE: this.createEmptyLayer(),
       FOREGROUND: this.createEmptyLayer(),
     };
-    this.buildDefaultMap();
   }
 
   private createEmptyLayer(): (TileType | null)[][] {
@@ -79,8 +90,8 @@ export class GameMap {
   }
 
   /** 外部データからマップを生成 */
-  private buildDefaultMap(): void {
-    for (const obj of INITIAL_MAP_DATA) {
+  buildMap(data: MapObject[]): void {
+    for (const obj of data) {
       switch (obj.shape) {
         case 'point':
           this.setTile(obj.layer, obj.x, obj.y, obj.type);

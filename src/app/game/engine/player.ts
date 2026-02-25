@@ -1,5 +1,5 @@
 import { GAME_CONSTANTS } from './constants';
-import { Vector2 } from './utils/vector';
+import { PlayerState, IdleState } from './player-state';
 
 export type PlayerFacing = 'right' | 'left';
 
@@ -16,26 +16,24 @@ export class Player {
   /** プレイヤーの向き: 右方向='right', 左方向='left' */
   facing: PlayerFacing = 'right';
 
+  /** 現在の状態 */
+  private currentState: PlayerState;
+
+  constructor() {
+    this.currentState = new IdleState(this);
+    this.currentState.enter();
+  }
+
+  /**
+   * 状態を変更します。
+   */
+  setState(newState: PlayerState): void {
+    this.currentState.exit();
+    this.currentState = newState;
+    this.currentState.enter();
+  }
+
   update(delta: number) {
-    const dx = this.targetX - this.x;
-    const dy = this.targetY - this.y;
-    const dist = Vector2.distance({ x: this.x, y: this.y }, { x: this.targetX, y: this.targetY });
-
-    if (dist > GAME_CONSTANTS.PLAYER_STOP_THRESHOLD) {
-      const moveAmount = this.speed * delta;
-
-      // 目標地点を超えないように移動
-      if (moveAmount >= dist) {
-        this.x = this.targetX;
-        this.y = this.targetY;
-      } else {
-        const ratio = moveAmount / dist;
-        this.x += dx * ratio;
-        this.y += dy * ratio;
-      }
-
-      // 画面上の左右判定 (dx - dy)
-      this.facing = (dx - dy) >= 0 ? 'right' : 'left';
-    }
+    this.currentState.update(delta);
   }
 }

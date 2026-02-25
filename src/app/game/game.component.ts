@@ -2,6 +2,7 @@ import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import * as PIXI from 'pixi.js';
 import { GameEngine } from './engine/game-engine';
 import { AssetLoaderService } from './services/asset-loader.service';
+import { GameEventService } from './services/game-event.service';
 
 @Component({
   selector: 'game',
@@ -16,7 +17,10 @@ export class GameComponent implements AfterViewInit {
   @ViewChild('bgmAudio')
   bgmAudio!: ElementRef<HTMLAudioElement>;
 
-  constructor(private assetLoader: AssetLoaderService) { }
+  constructor(
+    private assetLoader: AssetLoaderService,
+    private gameEvent: GameEventService
+  ) { }
 
   ngAfterViewInit(): void {
 
@@ -28,7 +32,9 @@ export class GameComponent implements AfterViewInit {
 
     this.container.nativeElement.appendChild(app.view as any);
 
-    new GameEngine(app, this.assetLoader);
+    this.assetLoader.loadAssets().then(() => {
+      new GameEngine(app, this.assetLoader, this.gameEvent);
+    });
 
     // ブラウザの自動再生制限を回避するため、最初のクリックでBGMを再生
     const playBgm = () => {
