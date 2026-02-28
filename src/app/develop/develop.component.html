@@ -1,0 +1,123 @@
+<div class="develop-container">
+    <header>
+        <h1>Developer Dashboard</h1>
+        <nav>
+            <button [class.active]="activeTab === 'maps'" (click)="setTab('maps')">Maps</button>
+            <button [class.active]="activeTab === 'assets'" (click)="setTab('assets')">Assets</button>
+            <button [class.active]="activeTab === 'specs'" (click)="setTab('specs')">Specifications</button>
+            <a routerLink="/game" class="back-link">Back to Game</a>
+        </nav>
+    </header>
+
+    <main>
+        <section *ngIf="activeTab === 'assets'" class="tab-content">
+            <div class="asset-grid">
+                <div *ngFor="let asset of assets" class="asset-card">
+                    <div class="asset-preview">
+                        <img *ngIf="asset.type === 'image'" [src]="asset.path" [alt]="asset.key">
+                        <div *ngIf="asset.type === 'json'" class="json-icon">[JSON]</div>
+                        <div *ngIf="asset.type === 'other'" class="other-icon">?</div>
+                    </div>
+                    <div class="asset-info">
+                        <span class="asset-key">{{ asset.key }}</span>
+                        <span class="asset-path">{{ asset.path }}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section *ngIf="activeTab === 'specs'" class="tab-content">
+            <div class="spec-list">
+                <div *ngFor="let spec of specs" class="spec-item">
+                    <h3>{{ spec.title }}</h3>
+                    <p class="file-path">{{ spec.content }}</p>
+                    <a [href]="spec.content" target="_blank" class="view-btn">View Document</a>
+                </div>
+            </div>
+        </section>
+        <section *ngIf="activeTab === 'maps'" class="tab-content">
+            <div class="map-controls">
+                <select #mapSelect (change)="selectMap(mapSelect.value)">
+                    <option *ngFor="let map of mapAssets" [value]="map.key" [selected]="map.key === selectedMapKey">{{
+                        map.key }}</option>
+                </select>
+                <div class="map-stats" *ngIf="selectedMapData">
+                    Size: {{selectedMapData.config.width}}x{{selectedMapData.config.height}} |
+                    Objects: {{selectedMapData.objects.length}} |
+                    Warps: {{selectedMapData.warps.length}}
+                </div>
+            </div>
+
+            <div class="map-viz-container" *ngIf="selectedMapData">
+                <div class="map-grid-scroll">
+                    <div class="map-grid-container"
+                        [style.grid-template-columns]="'repeat(' + selectedMapData.config.width + ', 12px)'">
+                        <ng-container *ngFor="let row of mapGrid; let y = index">
+                            <div *ngFor="let cell of row; let x = index" class="grid-cell" [class]="getTileClass(cell)"
+                                [class.highlight]="isHighlighted(x, y)"
+                                [title]="'(' + x + ',' + y + ') ' + (cell || 'EMPTY')">
+                            </div>
+                        </ng-container>
+                        <!-- Warp Points Overlay -->
+                        <div *ngFor="let warp of selectedMapData.warps" class="warp-marker"
+                            [style.grid-column-start]="warp.x + 1" [style.grid-row-start]="warp.y + 1"
+                            [class.highlight]="isHighlighted(warp.x, warp.y)"
+                            [title]="'WARP to ' + warp.targetMap + ' (' + warp.targetX + ',' + warp.targetY + ')'">
+                            W
+                        </div>
+                    </div>
+                </div>
+
+                <div class="map-tables">
+                    <h3>Objects</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Layer</th>
+                                    <th>Type</th>
+                                    <th>Pos</th>
+                                    <th>Size/Shape</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let obj of selectedMapData.objects" (mouseenter)="onObjectHover(obj)"
+                                    (mouseleave)="onObjectLeave()" [class.row-highlight]="hoveredObject === obj">
+                                    <td><span class="badge" [class]="obj.layer.toLowerCase()">{{obj.layer}}</span></td>
+                                    <td>{{obj.type || '-'}}</td>
+                                    <td>({{obj.x}}, {{obj.y}})</td>
+                                    <td>
+                                        <span *ngIf="obj.shape === 'rect'">{{obj.w}}x{{obj.h}} (Rect)</span>
+                                        <span *ngIf="obj.shape === 'line'">Len:{{obj.length}} ({{obj.direction}})</span>
+                                        <span *ngIf="obj.shape === 'point'">Point</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Warps</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Pos</th>
+                                    <th>Target Map</th>
+                                    <th>Target Pos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let warp of selectedMapData.warps" (mouseenter)="onWarpHover(warp)"
+                                    (mouseleave)="onWarpLeave()" [class.row-highlight]="hoveredWarp === warp">
+                                    <td>({{warp.x}}, {{warp.y}})</td>
+                                    <td>{{warp.targetMap}}</td>
+                                    <td>({{warp.targetX}}, {{warp.targetY}})</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>

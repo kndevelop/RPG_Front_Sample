@@ -22,6 +22,11 @@ export class AssetLoaderService {
         'map_lshape': 'assets/data/map-lshape.json',
     };
 
+    /** アセットマニフェストを取得 */
+    get manifest(): Record<string, string> {
+        return { ...this.assetManifest };
+    }
+
     /**
      * 全てのアセットをロードします。
      */
