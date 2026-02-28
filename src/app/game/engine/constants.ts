@@ -24,3 +24,36 @@ export interface Point {
     x: number;
     y: number;
 }
+
+/** サイズインターフェース */
+export interface Size {
+    width: number;
+    height: number;
+}
+
+/** 矩形インターフェース */
+export interface Rect extends Point, Size { }
+
+/** 描画コンテキスト */
+export interface ScreenContext {
+    centerX: number;
+    centerY: number;
+    offset: Point;
+}
+
+/** 描画対象の最小単位（Y-Sorting用） */
+export type RenderItem = {
+    type: 'tile';
+    tileType: string;
+    x: number;
+    y: number;
+    mapX?: number; // マップ座標X
+    mapY?: number; // マップ座標Y
+    sortY: number;
+} | {
+    type: 'player';
+    player: any; // 循環参照を避けるため
+    x: number;
+    y: number;
+    sortY: number;
+};

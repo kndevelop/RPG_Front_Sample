@@ -3,7 +3,7 @@ import { IsoMath } from './iso-math';
 import { GameMap, TileType, TILE_CONFIG, LayerType } from './game-map';
 import { Player } from './player';
 import { Camera } from './camera';
-import { GAME_CONSTANTS } from './constants';
+import { GAME_CONSTANTS, RenderItem, ScreenContext } from './constants';
 import { AssetLoaderService } from '../services/asset-loader.service';
 
 export class Renderer {
@@ -92,20 +92,20 @@ export class Renderer {
   }
 
   draw(map: GameMap, player: Player, camera: Camera) {
-    const centerX = this.app.screen.width / 2;
-    const centerY = this.app.screen.height / 2;
+    const context: ScreenContext = {
+      centerX: this.app.screen.width / 2,
+      centerY: this.app.screen.height / 2,
+      offset: camera.getOffset(player)
+    };
 
     this.mapContainer.removeChildren();
     this.resetSprites();
-
-    const offset = camera.getOffset(player);
-    const context = { centerX, centerY, offset };
 
     // 1. 地面レイヤー (WALKABLE) を最背面に描画（これらはソート不要）
     this.renderBasicLayer(map, 'WALKABLE', context);
 
     // 2. Y-Sorting が必要なエンティティを収集
-    const renderItems: any[] = [];
+    const renderItems: RenderItem[] = [];
 
     const layers: LayerType[] = ['IMPASSABLE', 'FOREGROUND'];
     for (const layer of layers) {
@@ -114,27 +114,27 @@ export class Renderer {
           const tileType = map.getTile(layer, x, y);
           if (!tileType) continue;
 
-          const pos = this.iso.mapToScreen(x, y);
-          const screenX = centerX + pos.x - offset.x;
-          const screenY = centerY + pos.y - offset.y;
+          const screenPos = this.iso.getScreenPos(x, y, context.centerX, context.centerY, context.offset);
 
           renderItems.push({
             type: 'tile',
             tileType,
-            x: screenX,
-            y: screenY,
-            sortY: screenY + GAME_CONSTANTS.TILE_HEIGHT
+            x: screenPos.x,
+            y: screenPos.y,
+            mapX: x,  // 新規追加
+            mapY: y,  // 新規追加
+            sortY: screenPos.y + GAME_CONSTANTS.TILE_HEIGHT
           });
         }
       }
     }
 
-    const playerFootY = centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET + (GAME_CONSTANTS.PLAYER_HEIGHT * (1 - GAME_CONSTANTS.PLAYER_ANCHOR_Y));
+    const playerFootY = context.centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET + (GAME_CONSTANTS.PLAYER_HEIGHT * (1 - GAME_CONSTANTS.PLAYER_ANCHOR_Y));
     renderItems.push({
       type: 'player',
       player,
-      x: centerX,
-      y: centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET,
+      x: context.centerX,
+      y: context.centerY + GAME_CONSTANTS.PLAYER_Y_OFFSET,
       sortY: playerFootY
     });
 
@@ -142,7 +142,7 @@ export class Renderer {
 
     for (const item of renderItems) {
       if (item.type === 'tile') {
-        this.drawTile(item.tileType, item.x, item.y);
+        this.drawTile(item.tileType as TileType, item.x, item.y, item.mapX!, item.mapY!);
       } else {
         this.renderPlayerSprite(item.player, { centerX: item.x, centerY: item.y - GAME_CONSTANTS.PLAYER_Y_OFFSET });
       }
@@ -166,49 +166,45 @@ export class Renderer {
     this.mapContainer.addChild(this.playerSprite);
   }
 
-  private renderBasicLayer(map: GameMap, layer: LayerType, { centerX, centerY, offset }: any) {
+  private renderBasicLayer(map: GameMap, layer: LayerType, context: ScreenContext) {
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
         const tileType = map.getTile(layer, x, y);
         if (!tileType) continue;
 
-        const pos = this.iso.mapToScreen(x, y);
-        const screenX = centerX + pos.x - offset.x;
-        const screenY = centerY + pos.y - offset.y;
-
-        this.drawTile(tileType, screenX, screenY);
+        const screenPos = this.iso.getScreenPos(x, y, context.centerX, context.centerY, context.offset);
+        this.drawTile(tileType, screenPos.x, screenPos.y, x, y);
       }
     }
   }
 
-  private drawTile(type: TileType, x: number, y: number) {
+  private drawTile(type: TileType, screenX: number, screenY: number, mapX: number, mapY: number) {
     const config = TILE_CONFIG[type];
     const tex = this.tileTextures[type];
 
     if (type === 'WALL') {
-      // 従来の壁描画（Graphics）はそのまま
-      this.drawWallTile(x, y, config.color, config.wallColor ?? 0x3E2723);
+      this.drawWallTile(screenX, screenY, config.color, config.wallColor ?? 0x3E2723);
     } else if (tex && tex.valid) {
       const sprite = this.getSpriteFromPool(tex);
 
       if (config.isVertical) {
         // 垂直オブジェクト（木など）の描画
         sprite.anchor.set(0.5, 1.0);
-        sprite.x = x;
-        sprite.y = y + GAME_CONSTANTS.TILE_HEIGHT;
+        sprite.x = screenX;
+        // 足元の位置をIsoMathから取得して補正（将来的な高さ調整にも対応しやすくする）
+        sprite.y = screenY + GAME_CONSTANTS.TILE_HEIGHT;
         sprite.width = GAME_CONSTANTS.TILE_WIDTH;
-        // アスペクト比を維持して高さを自動調整
         sprite.height = (tex.height / tex.width) * GAME_CONSTANTS.TILE_WIDTH;
       } else {
         // 通常の地面タイル
         sprite.anchor.set(0.5, 0);
-        sprite.x = x;
-        sprite.y = y;
+        sprite.x = screenX;
+        sprite.y = screenY;
         sprite.width = GAME_CONSTANTS.TILE_WIDTH;
         sprite.height = GAME_CONSTANTS.TILE_HEIGHT;
       }
     } else {
-      this.drawColorTile(x, y, config.color, type);
+      this.drawColorTile(screenX, screenY, config.color, type);
     }
   }
 
