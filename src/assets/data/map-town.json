@@ -1,0 +1,67 @@
+{
+    "config": {
+        "width": 20,
+        "height": 20
+    },
+    "objects": [
+        {
+            "layer": "WALKABLE",
+            "x": 0,
+            "y": 0,
+            "w": 20,
+            "h": 20,
+            "type": "ROAD",
+            "shape": "rect"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 2,
+            "y": 2,
+            "w": 6,
+            "h": 4,
+            "type": "WALL",
+            "shape": "rect"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 12,
+            "y": 2,
+            "w": 6,
+            "h": 4,
+            "type": "WALL",
+            "shape": "rect"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 0,
+            "y": 8,
+            "length": 20,
+            "direction": "horizontal",
+            "type": "GRASS",
+            "shape": "line"
+        },
+        {
+            "layer": "FOREGROUND",
+            "x": 5,
+            "y": 10,
+            "type": "TREE",
+            "shape": "point"
+        },
+        {
+            "layer": "FOREGROUND",
+            "x": 15,
+            "y": 10,
+            "type": "TREE",
+            "shape": "point"
+        }
+    ],
+    "warps": [
+        {
+            "x": 2,
+            "y": 18,
+            "targetMap": "map_default",
+            "targetX": 2,
+            "targetY": 2
+        }
+    ]
+}

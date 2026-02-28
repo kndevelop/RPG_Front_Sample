@@ -14,7 +14,12 @@ export class AssetLoaderService {
         'tile_wall': 'assets/tiles/wall.png',
         'tile_road': 'assets/tiles/road.png',
         'tile_tree': 'assets/tiles/tree.png',
+        'tile_sand': 'assets/tiles/sand.png',
+        'tile_snow': 'assets/tiles/snow.png',
         'map_default': 'assets/data/map-default.json',
+        'map_town': 'assets/data/map-town.json',
+        'map_dungeon': 'assets/data/map-dungeon.json',
+        'map_lshape': 'assets/data/map-lshape.json',
     };
 
     /**

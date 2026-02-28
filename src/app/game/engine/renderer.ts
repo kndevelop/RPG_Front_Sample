@@ -9,6 +9,7 @@ import { AssetLoaderService } from '../services/asset-loader.service';
 export class Renderer {
 
   mapContainer = new PIXI.Container();
+  private fadeOverlay: PIXI.Graphics;
 
   private playerSprite: PIXI.Sprite | null = null;
 
@@ -26,6 +27,16 @@ export class Renderer {
     private assetLoader: AssetLoaderService
   ) {
     app.stage.addChild(this.mapContainer);
+
+    // フェード用オーバーレイの初期化
+    this.fadeOverlay = new PIXI.Graphics();
+    this.fadeOverlay.beginFill(0x000000);
+    this.fadeOverlay.drawRect(0, 0, app.screen.width, app.screen.height);
+    this.fadeOverlay.endFill();
+    this.fadeOverlay.alpha = 0; // 最初は透明
+    this.fadeOverlay.zIndex = 10000;
+    app.stage.addChild(this.fadeOverlay);
+
     this.initPlayer();
     this.initTileTextures();
   }
@@ -49,7 +60,9 @@ export class Renderer {
       'WATER': 'tile_water',
       'WALL': 'tile_wall',
       'ROAD': 'tile_road',
-      'TREE': 'tile_tree'
+      'TREE': 'tile_tree',
+      'SAND': 'tile_sand',
+      'SNOW': 'tile_snow'
     };
 
     for (const [type, key] of Object.entries(mapping)) {
@@ -270,5 +283,43 @@ export class Renderer {
     return (Math.round(r1 + (r2 - r1) * factor) << 16) |
       (Math.round(g1 + (g2 - g1) * factor) << 8) |
       Math.round(b1 + (b2 - b1) * factor);
+  }
+
+  /** 画面を暗転させる (不透明度 0 -> 1) */
+  async fadeOut(durationMs: number = 500): Promise<void> {
+    return new Promise((resolve) => {
+      const startTime = performance.now();
+      const tick = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        this.fadeOverlay.alpha = progress;
+
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          resolve();
+        }
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /** 画面を明転させる (不透明度 1 -> 0) */
+  async fadeIn(durationMs: number = 500): Promise<void> {
+    return new Promise((resolve) => {
+      const startTime = performance.now();
+      const tick = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        this.fadeOverlay.alpha = 1 - progress;
+
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          resolve();
+        }
+      };
+      requestAnimationFrame(tick);
+    });
   }
 }

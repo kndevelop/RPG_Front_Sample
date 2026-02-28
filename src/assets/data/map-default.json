@@ -1,122 +1,144 @@
-[
-    {
-        "layer": "WALKABLE",
-        "x": 0,
-        "y": 0,
-        "w": 20,
-        "h": 20,
-        "type": "GRASS",
-        "shape": "rect"
+{
+    "config": {
+        "width": 20,
+        "height": 20
     },
-    {
-        "layer": "IMPASSABLE",
-        "x": 0,
-        "y": 0,
-        "length": 20,
-        "direction": "horizontal",
-        "type": "WALL",
-        "shape": "line"
-    },
-    {
-        "layer": "IMPASSABLE",
-        "x": 0,
-        "y": 19,
-        "length": 20,
-        "direction": "horizontal",
-        "type": "WALL",
-        "shape": "line"
-    },
-    {
-        "layer": "IMPASSABLE",
-        "x": 0,
-        "y": 0,
-        "length": 20,
-        "direction": "vertical",
-        "type": "WALL",
-        "shape": "line"
-    },
-    {
-        "layer": "IMPASSABLE",
-        "x": 19,
-        "y": 0,
-        "length": 20,
-        "direction": "vertical",
-        "type": "WALL",
-        "shape": "line"
-    },
-    {
-        "layer": "IMPASSABLE",
-        "x": 8,
-        "y": 3,
-        "w": 3,
-        "h": 5,
-        "type": "WATER",
-        "shape": "rect"
-    },
-    {
-        "layer": "IMPASSABLE",
-        "x": 8,
-        "y": 5,
-        "w": 3,
-        "h": 1,
-        "type": null,
-        "shape": "rect"
-    },
-    {
-        "layer": "WALKABLE",
-        "x": 8,
-        "y": 5,
-        "w": 3,
-        "h": 1,
-        "type": "ROAD",
-        "shape": "rect"
-    },
-    {
-        "layer": "IMPASSABLE",
-        "x": 5,
-        "y": 10,
-        "w": 3,
-        "h": 4,
-        "type": "WALL",
-        "shape": "rect"
-    },
-    {
-        "layer": "FOREGROUND",
-        "x": 12,
-        "y": 12,
-        "type": "TREE",
-        "shape": "point"
-    },
-    {
-        "layer": "FOREGROUND",
-        "x": 14,
-        "y": 12,
-        "type": "TREE",
-        "shape": "point"
-    },
-    {
-        "layer": "IMPASSABLE",
-        "x": 10,
-        "y": 15,
-        "type": "TREE",
-        "shape": "point"
-    },
-    {
-        "layer": "WALKABLE",
-        "x": 1,
-        "y": 1,
-        "length": 18,
-        "direction": "horizontal",
-        "type": "ROAD",
-        "shape": "line"
-    },
-    {
-        "layer": "WALKABLE",
-        "x": 1,
-        "y": 1,
-        "length": 18,
-        "direction": "vertical",
-        "type": "ROAD",
-        "shape": "line"
-    }
-]
+    "objects": [
+        {
+            "layer": "WALKABLE",
+            "x": 0,
+            "y": 0,
+            "w": 20,
+            "h": 20,
+            "type": "GRASS",
+            "shape": "rect"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 0,
+            "y": 0,
+            "length": 20,
+            "direction": "horizontal",
+            "type": "WALL",
+            "shape": "line"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 0,
+            "y": 19,
+            "length": 20,
+            "direction": "horizontal",
+            "type": "WALL",
+            "shape": "line"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 0,
+            "y": 0,
+            "length": 20,
+            "direction": "vertical",
+            "type": "WALL",
+            "shape": "line"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 19,
+            "y": 0,
+            "length": 20,
+            "direction": "vertical",
+            "type": "WALL",
+            "shape": "line"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 8,
+            "y": 3,
+            "w": 3,
+            "h": 5,
+            "type": "WATER",
+            "shape": "rect"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 8,
+            "y": 5,
+            "w": 3,
+            "h": 1,
+            "type": null,
+            "shape": "rect"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 8,
+            "y": 5,
+            "w": 3,
+            "h": 1,
+            "type": "ROAD",
+            "shape": "rect"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 5,
+            "y": 10,
+            "w": 3,
+            "h": 4,
+            "type": "WALL",
+            "shape": "rect"
+        },
+        {
+            "layer": "FOREGROUND",
+            "x": 12,
+            "y": 12,
+            "type": "TREE",
+            "shape": "point"
+        },
+        {
+            "layer": "FOREGROUND",
+            "x": 14,
+            "y": 12,
+            "type": "TREE",
+            "shape": "point"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 10,
+            "y": 15,
+            "type": "TREE",
+            "shape": "point"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 1,
+            "y": 1,
+            "length": 18,
+            "direction": "horizontal",
+            "type": "ROAD",
+            "shape": "line"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 1,
+            "y": 1,
+            "length": 18,
+            "direction": "vertical",
+            "type": "ROAD",
+            "shape": "line"
+        }
+    ],
+    "warps": [
+        {
+            "x": 1,
+            "y": 1,
+            "targetMap": "map_town",
+            "targetX": 2,
+            "targetY": 15
+        },
+        {
+            "x": 18,
+            "y": 1,
+            "targetMap": "map_lshape",
+            "targetX": 2,
+            "targetY": 2
+        }
+    ]
+}

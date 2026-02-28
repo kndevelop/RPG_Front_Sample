@@ -1,3 +1,9 @@
+<div class="map-controls">
+    <button (click)="handleMapChange('map_default')">デフォルト</button>
+    <button (click)="handleMapChange('map_town')">町</button>
+    <button (click)="handleMapChange('map_dungeon')">ダンジョン</button>
+    <button (click)="handleMapChange('map_lshape')">L字</button>
+</div>
 <div #container class="game-container">
     <audio #bgmAudio id="myAudio" loop>
         <source src="assets/bgm/私の村にも春が来た.mp3" type="audio/mpeg">

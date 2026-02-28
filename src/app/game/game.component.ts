@@ -17,10 +17,18 @@ export class GameComponent implements AfterViewInit {
   @ViewChild('bgmAudio')
   bgmAudio!: ElementRef<HTMLAudioElement>;
 
+  private gameEngine?: GameEngine;
+
   constructor(
     private assetLoader: AssetLoaderService,
     private gameEvent: GameEventService
   ) { }
+
+  handleMapChange(mapKey: string): void {
+    if (this.gameEngine) {
+      this.gameEngine.changeMap(mapKey);
+    }
+  }
 
   ngAfterViewInit(): void {
 
@@ -33,7 +41,7 @@ export class GameComponent implements AfterViewInit {
     this.container.nativeElement.appendChild(app.view as any);
 
     this.assetLoader.loadAssets().then(() => {
-      new GameEngine(app, this.assetLoader, this.gameEvent);
+      this.gameEngine = new GameEngine(app, this.assetLoader, this.gameEvent);
     });
 
     // ブラウザの自動再生制限を回避するため、最初のクリックでBGMを再生

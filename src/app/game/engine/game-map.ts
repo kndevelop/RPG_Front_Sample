@@ -1,4 +1,4 @@
-export type TileType = 'GRASS' | 'WATER' | 'WALL' | 'ROAD' | 'TREE';
+export type TileType = 'GRASS' | 'WATER' | 'WALL' | 'ROAD' | 'TREE' | 'SAND' | 'SNOW';
 
 /** タイルタイプ別の設定 */
 export const TILE_CONFIG: Record<TileType, {
@@ -13,9 +13,19 @@ export const TILE_CONFIG: Record<TileType, {
   WALL: { walkable: false, color: 0x795548, wallColor: 0x4E342E, texturePath: 'assets/tiles/wall.png', isVertical: true },
   ROAD: { walkable: true, color: 0xBDBDBD, texturePath: 'assets/tiles/road.png' },
   TREE: { walkable: false, color: 0x2E7D32, texturePath: 'assets/tiles/tree.png', isVertical: true },
+  SAND: { walkable: true, color: 0xFFECB3, texturePath: 'assets/tiles/sand.png' },
+  SNOW: { walkable: true, color: 0xE3F2FD, texturePath: 'assets/tiles/snow.png' },
 };
 
 export type LayerType = 'WALKABLE' | 'IMPASSABLE' | 'FOREGROUND';
+
+export interface WarpPoint {
+  x: number;
+  y: number;
+  targetMap: string;
+  targetX: number;
+  targetY: number;
+}
 
 export interface MapObject {
   layer: LayerType;
@@ -31,13 +41,18 @@ export interface MapObject {
 
 export class GameMap {
 
-  width = 20;
-  height = 20;
+  width: number;
+  height: number;
 
   /** レイヤー別タイルデータ */
   layers: Record<LayerType, (TileType | null)[][]>;
 
-  constructor() {
+  /** ワープポイント */
+  warps: WarpPoint[] = [];
+
+  constructor(width: number = 20, height: number = 20) {
+    this.width = width;
+    this.height = height;
     this.layers = {
       WALKABLE: this.createEmptyLayer(),
       IMPASSABLE: this.createEmptyLayer(),
@@ -90,7 +105,10 @@ export class GameMap {
   }
 
   /** 外部データからマップを生成 */
-  buildMap(data: MapObject[]): void {
+  buildMap(data: MapObject[], warps?: WarpPoint[]): void {
+    if (warps) {
+      this.warps = warps;
+    }
     for (const obj of data) {
       switch (obj.shape) {
         case 'point':
