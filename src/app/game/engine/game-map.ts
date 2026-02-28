@@ -104,6 +104,64 @@ export class GameMap {
     }
   }
 
+  /**
+   * 始点(x0, y0)から終点(x1, y1)に向かって直線的に移動し、最初に衝突する手前の到達可能点を返します。
+   * @param x0 始点のタイルX
+   * @param y0 始点のタイルY
+   * @param x1 終点のタイルX
+   * @param y1 終点のタイルY
+   */
+  findReachablePoint(x0: number, y0: number, x1: number, y1: number): { x: number, y: number } {
+    // 整数化
+    let lastX = Math.round(x0);
+    let lastY = Math.round(y0);
+    const targetX = Math.round(x1);
+    const targetY = Math.round(y1);
+
+    // 既に始点が通り抜け不可なら始点を返す
+    if (!this.isWalkable(lastX, lastY)) {
+      return { x: lastX, y: lastY };
+    }
+
+    // Bresenhamのアルゴリズム的なステップ実行
+    const dx = Math.abs(targetX - lastX);
+    const dy = Math.abs(targetY - lastY);
+    const sx = (lastX < targetX) ? 1 : -1;
+    const sy = (lastY < targetY) ? 1 : -1;
+    let err = dx - dy;
+
+    let currX = lastX;
+    let currY = lastY;
+
+    while (true) {
+      if (currX === targetX && currY === targetY) break;
+
+      const e2 = 2 * err;
+      let nextX = currX;
+      let nextY = currY;
+
+      if (e2 > -dy) {
+        err -= dy;
+        nextX += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        nextY += sy;
+      }
+
+      // 次のマスが歩行可能かチェック
+      if (!this.isWalkable(nextX, nextY)) {
+        // 衝突した場合は、その直前の座標を返す
+        return { x: currX, y: currY };
+      }
+
+      currX = nextX;
+      currY = nextY;
+    }
+
+    return { x: targetX, y: targetY };
+  }
+
   /** 外部データからマップを生成 */
   buildMap(data: MapObject[], warps?: WarpPoint[]): void {
     if (warps) {

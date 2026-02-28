@@ -101,10 +101,9 @@ export class GameEngine {
 
   private setupSubscriptions() {
     this.gameEvent.moveRequest$.subscribe(({ x, y }) => {
-      if (this.map.isWalkable(x, y)) {
-        this.player.targetX = x;
-        this.player.targetY = y;
-      }
+      const reachable = this.map.findReachablePoint(this.player.x, this.player.y, x, y);
+      this.player.targetX = reachable.x;
+      this.player.targetY = reachable.y;
     });
   }
 }
