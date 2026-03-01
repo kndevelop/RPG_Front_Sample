@@ -23,7 +23,7 @@
             "shape": "rect"
         },
         {
-            "layer": "IMPASSABLE",
+            "layer": "WALKABLE",
             "x": 10,
             "y": 10,
             "w": 20,
