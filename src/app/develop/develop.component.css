@@ -259,38 +259,6 @@ nav button:hover {
     z-index: 10;
 }
 
-/* Tile Colors */
-.tile-walkable {
-    background: #2e7d32;
-}
-
-/* Green */
-.tile-impassable {
-    background: #c62828;
-}
-
-/* Blue */
-
-.type-water {
-    background: #0277bd;
-}
-
-.type-wall {
-    background: #4e342e;
-}
-
-.type-tree {
-    background: #1b5e20;
-}
-
-.type-sand {
-    background: #fbc02d;
-}
-
-.type-snow {
-    background: #e3f2fd;
-}
-
 .warp-marker {
     background: #f4b400;
     color: #000;
