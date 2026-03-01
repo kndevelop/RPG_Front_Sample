@@ -59,15 +59,6 @@
             "shape": "rect"
         },
         {
-            "layer": "IMPASSABLE",
-            "x": 8,
-            "y": 5,
-            "w": 3,
-            "h": 1,
-            "type": null,
-            "shape": "rect"
-        },
-        {
             "layer": "WALKABLE",
             "x": 8,
             "y": 5,

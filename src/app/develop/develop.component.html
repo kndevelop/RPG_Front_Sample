@@ -49,21 +49,33 @@
             </div>
 
             <div class="map-viz-container" *ngIf="selectedMapData">
-                <div class="map-grid-scroll">
-                    <div class="map-grid-container"
-                        [style.grid-template-columns]="'repeat(' + selectedMapData.config.width + ', 12px)'">
-                        <ng-container *ngFor="let row of mapGrid; let y = index">
-                            <div *ngFor="let cell of row; let x = index" class="grid-cell" [class]="getTileClass(cell)"
-                                [class.highlight]="isHighlighted(x, y)"
-                                [title]="'(' + x + ',' + y + ') ' + (cell || 'EMPTY')">
+                <div class="map-visuals">
+                    <div class="map-grid-section">
+                        <h3>Map Grid (Top-down)</h3>
+                        <div class="map-grid-scroll">
+                            <div class="map-grid-container"
+                                [style.grid-template-columns]="'repeat(' + selectedMapData.config.width + ', 8px)'">
+                                <ng-container *ngFor="let row of mapGrid; let y = index">
+                                    <div *ngFor="let cell of row; let x = index" class="grid-cell"
+                                        [class]="getTileClass(cell)" [class.highlight]="isHighlighted(x, y)"
+                                        [title]="'(' + x + ',' + y + ') ' + (cell || 'EMPTY')">
+                                    </div>
+                                </ng-container>
+                                <!-- Warp Points Overlay -->
+                                <div *ngFor="let warp of selectedMapData.warps" class="warp-marker"
+                                    [style.grid-column-start]="warp.x + 1" [style.grid-row-start]="warp.y + 1"
+                                    [class.highlight]="isHighlighted(warp.x, warp.y)"
+                                    [title]="'WARP to ' + warp.targetMap + ' (' + warp.targetX + ',' + warp.targetY + ')'">
+                                    W
+                                </div>
                             </div>
-                        </ng-container>
-                        <!-- Warp Points Overlay -->
-                        <div *ngFor="let warp of selectedMapData.warps" class="warp-marker"
-                            [style.grid-column-start]="warp.x + 1" [style.grid-row-start]="warp.y + 1"
-                            [class.highlight]="isHighlighted(warp.x, warp.y)"
-                            [title]="'WARP to ' + warp.targetMap + ' (' + warp.targetX + ',' + warp.targetY + ')'">
-                            W
+                        </div>
+                    </div>
+
+                    <div class="map-preview-section">
+                        <h3>Isometric Preview</h3>
+                        <div class="map-iso-container">
+                            <canvas #isoCanvas></canvas>
                         </div>
                     </div>
                 </div>
@@ -84,7 +96,13 @@
                                 <tr *ngFor="let obj of selectedMapData.objects" (mouseenter)="onObjectHover(obj)"
                                     (mouseleave)="onObjectLeave()" [class.row-highlight]="hoveredObject === obj">
                                     <td><span class="badge" [class]="obj.layer.toLowerCase()">{{obj.layer}}</span></td>
-                                    <td>{{obj.type || '-'}}</td>
+                                    <td>
+                                        <div class="type-cell">
+                                            <span class="color-swatch"
+                                                [class]="'type-' + (obj.type || 'none').toLowerCase()"></span>
+                                            {{obj.type || '-'}}
+                                        </div>
+                                    </td>
                                     <td>({{obj.x}}, {{obj.y}})</td>
                                     <td>
                                         <span *ngIf="obj.shape === 'rect'">{{obj.w}}x{{obj.h}} (Rect)</span>
