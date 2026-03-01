@@ -39,20 +39,6 @@
             "direction": "horizontal",
             "type": "GRASS",
             "shape": "line"
-        },
-        {
-            "layer": "FOREGROUND",
-            "x": 5,
-            "y": 10,
-            "type": "TREE",
-            "shape": "point"
-        },
-        {
-            "layer": "FOREGROUND",
-            "x": 15,
-            "y": 10,
-            "type": "TREE",
-            "shape": "point"
         }
     ],
     "warps": [

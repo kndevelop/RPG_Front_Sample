@@ -48,13 +48,6 @@
             "direction": "vertical",
             "type": "ROAD",
             "shape": "line"
-        },
-        {
-            "layer": "FOREGROUND",
-            "x": 15,
-            "y": 5,
-            "type": "TREE",
-            "shape": "point"
         }
     ],
     "warps": [

@@ -101,28 +101,35 @@ export class Renderer {
     this.mapContainer.removeChildren();
     this.resetSprites();
 
-    // 1. 地面レイヤー (WALKABLE) を最背面に描画（これらはソート不要）
+    // 1. 地面レイヤー (WALKABLE) を最背面に描画（ソート不要）
     this.renderBasicLayer(map, 'WALKABLE', context);
 
     // 2. Y-Sorting が必要なエンティティを収集
     const renderItems: RenderItem[] = [];
 
-    const layers: LayerType[] = ['IMPASSABLE', 'FOREGROUND'];
+    const layers: LayerType[] = ['IMPASSABLE'];
     for (const layer of layers) {
       for (let y = 0; y < map.height; y++) {
         for (let x = 0; x < map.width; x++) {
           const tileType = map.getTile(layer, x, y);
           if (!tileType) continue;
 
-          const screenPos = this.iso.getScreenPos(x, y, context.centerX, context.centerY, context.offset);
+          // タイルのスクリーン座標を計算
+          const screenPos = this.iso.getScreenPos(
+            x, 
+            y,
+            context.centerX, 
+            context.centerY, 
+            context.offset
+          );
 
           renderItems.push({
             type: 'tile',
             tileType,
             x: screenPos.x,
             y: screenPos.y,
-            mapX: x,  // 新規追加
-            mapY: y,  // 新規追加
+            mapX: x,
+            mapY: y,
             sortY: screenPos.y + GAME_CONSTANTS.TILE_HEIGHT
           });
         }
@@ -142,7 +149,7 @@ export class Renderer {
 
     for (const item of renderItems) {
       if (item.type === 'tile') {
-        this.drawTile(item.tileType as TileType, item.x, item.y, item.mapX!, item.mapY!);
+        this.drawTile(item.tileType as TileType, item.x, item.y);
       } else {
         this.renderPlayerSprite(item.player, { centerX: item.x, centerY: item.y - GAME_CONSTANTS.PLAYER_Y_OFFSET });
       }
@@ -173,12 +180,12 @@ export class Renderer {
         if (!tileType) continue;
 
         const screenPos = this.iso.getScreenPos(x, y, context.centerX, context.centerY, context.offset);
-        this.drawTile(tileType, screenPos.x, screenPos.y, x, y);
+        this.drawTile(tileType, screenPos.x, screenPos.y);
       }
     }
   }
 
-  private drawTile(type: TileType, screenX: number, screenY: number, mapX: number, mapY: number) {
+  private drawTile(type: TileType, screenX: number, screenY: number) {
     const config = TILE_CONFIG[type];
     const tex = this.tileTextures[type];
 

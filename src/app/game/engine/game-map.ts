@@ -17,7 +17,7 @@ export const TILE_CONFIG: Record<TileType, {
   SNOW: { walkable: true, color: 0xE3F2FD, texturePath: 'assets/tiles/snow.png' },
 };
 
-export type LayerType = 'WALKABLE' | 'IMPASSABLE' | 'FOREGROUND';
+export type LayerType = 'WALKABLE' | 'IMPASSABLE';
 
 export interface WarpPoint {
   x: number;
@@ -55,8 +55,7 @@ export class GameMap {
     this.height = height;
     this.layers = {
       WALKABLE: this.createEmptyLayer(),
-      IMPASSABLE: this.createEmptyLayer(),
-      FOREGROUND: this.createEmptyLayer(),
+      IMPASSABLE: this.createEmptyLayer()
     };
   }
 
