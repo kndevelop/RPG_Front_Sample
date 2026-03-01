@@ -37,12 +37,6 @@ export interface MapObject {
   shape: 'point' | 'rect' | 'line';
   length?: number;
   direction?: 'horizontal' | 'vertical';
-
-  // 新規属性
-  isIsometric?: boolean;
-  zIndex?: 'front' | 'back' | 'y-sort';
-  height?: number;
-  faces?: ('top' | 'left' | 'right')[];
 }
 
 export class GameMap {

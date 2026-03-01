@@ -40,7 +40,7 @@ export class DevelopComponent implements OnInit, AfterViewInit {
         const manifest = this.assetLoader.manifest;
         const entries = Object.entries(manifest);
 
-        this.assets = entries.map(([key, path]) => {
+        const allAssets = entries.map(([key, path]) => {
             let type: 'image' | 'json' | 'other' = 'other';
             if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.webp')) {
                 type = 'image';
@@ -50,9 +50,12 @@ export class DevelopComponent implements OnInit, AfterViewInit {
             return { key, path, type };
         });
 
-        this.mapAssets = this.assets
+        this.mapAssets = allAssets
             .filter(a => a.type === 'json' && a.key.startsWith('map_'))
             .map(a => ({ key: a.key, path: a.path }));
+
+        // Asset 一覧には JSON を含めない
+        this.assets = allAssets.filter(a => a.type !== 'json');
 
         this.specs = [
             { title: 'Map System', content: 'documents/map/map-spec.md' },
@@ -156,133 +159,69 @@ export class DevelopComponent implements OnInit, AfterViewInit {
         const offsetY = 10;
 
         // タイル描画の補助関数
-        const drawIsoTile = (x: number, y: number, color: string, isWall: boolean = false, highlight: boolean = false, objHeight?: number, faces?: string[]) => {
+        const drawIsoTile = (x: number, y: number, color: string, isWall: boolean = false, highlight: boolean = false) => {
             const sx = offsetX + (x - y) * (tileW / 2);
             const sy = offsetY + (x + y) * (tileH / 2);
 
-            // デフォルト面 (指定がない場合は全部)
-            const renderFaces = faces || ['top', 'left', 'right'];
-            const wh = objHeight !== undefined ? objHeight / (GAME_CONSTANTS.WALL_HEIGHT / 6) : 6; // プレビュー用にスケール調整
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + tileW / 2, sy + tileH / 2);
+            ctx.lineTo(sx, sy + tileH);
+            ctx.lineTo(sx - tileW / 2, sy + tileH / 2);
+            ctx.closePath();
 
-            if (renderFaces.includes('top')) {
-                ctx.beginPath();
-                ctx.moveTo(sx, sy - (objHeight !== undefined ? wh : 0));
-                ctx.lineTo(sx + tileW / 2, sy + tileH / 2 - (objHeight !== undefined ? wh : 0));
-                ctx.lineTo(sx, sy + tileH - (objHeight !== undefined ? wh : 0));
-                ctx.lineTo(sx - tileW / 2, sy + tileH / 2 - (objHeight !== undefined ? wh : 0));
-                ctx.closePath();
-                ctx.fillStyle = color;
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            if (highlight) {
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
                 ctx.fill();
-
-                if (highlight) {
-                    ctx.strokeStyle = '#FFFFFF';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fill();
-                } else {
-                    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                }
+            } else {
+                ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
             }
 
-            if (isWall || objHeight !== undefined) {
-                // 側面描画
-                if (renderFaces.includes('left')) {
-                    ctx.beginPath();
-                    ctx.moveTo(sx - tileW / 2, sy + tileH / 2 - (objHeight !== undefined ? wh : 0));
-                    ctx.lineTo(sx, sy + tileH - (objHeight !== undefined ? wh : 0));
-                    ctx.lineTo(sx, sy + tileH);
-                    ctx.lineTo(sx - tileW / 2, sy + tileH / 2);
-                    ctx.closePath();
-                    ctx.fillStyle = highlight ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)';
-                    ctx.fill();
-                }
+            if (isWall) {
+                // 壁の側面
+                const wallH = 6;
+                ctx.beginPath();
+                ctx.moveTo(sx - tileW / 2, sy + tileH / 2);
+                ctx.lineTo(sx, sy + tileH);
+                ctx.lineTo(sx, sy + tileH + wallH);
+                ctx.lineTo(sx - tileW / 2, sy + tileH / 2 + wallH);
+                ctx.closePath();
+                ctx.fillStyle = highlight ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)';
+                ctx.fill();
 
-                if (renderFaces.includes('right')) {
-                    ctx.beginPath();
-                    ctx.moveTo(sx + tileW / 2, sy + tileH / 2 - (objHeight !== undefined ? wh : 0));
-                    ctx.lineTo(sx, sy + tileH - (objHeight !== undefined ? wh : 0));
-                    ctx.lineTo(sx, sy + tileH);
-                    ctx.lineTo(sx + tileW / 2, sy + tileH / 2);
-                    ctx.closePath();
-                    ctx.fillStyle = highlight ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
-                    ctx.fill();
-                }
+                ctx.beginPath();
+                ctx.moveTo(sx + tileW / 2, sy + tileH / 2);
+                ctx.lineTo(sx, sy + tileH);
+                ctx.lineTo(sx, sy + tileH + wallH);
+                ctx.lineTo(sx + tileW / 2, sy + tileH / 2 + wallH);
+                ctx.closePath();
+                ctx.fillStyle = highlight ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+                ctx.fill();
             }
         };
 
-        // レンダリングアイテムの事前収集
-        const items: any[] = [];
-
-        // 通常のタイルレイヤーから収集
+        // レイヤーごとに描画 (簡略化)
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const cellValue = this.mapGrid[y][x];
                 const highlighted = this.isHighlighted(x, y);
                 if (cellValue) {
                     const [layer, type] = cellValue.split(':');
-                    if (layer === 'WALKABLE') continue; // 地面は別途
-
-                    items.push({ x, y, type, highlighted, zIndex: 'y-sort' });
-                }
-            }
-        }
-
-        // 特別なオブジェクトも収集
-        const objects = this.selectedMapData.objects || [];
-        for (const obj of objects) {
-            const process = (tx: number, ty: number) => {
-                const highlighted = this.isHighlighted(tx, ty);
-                items.push({
-                    x: tx, y: ty,
-                    type: obj.type || 'EMPTY',
-                    highlighted,
-                    zIndex: obj.zIndex || 'y-sort',
-                    height: obj.height,
-                    faces: obj.faces
-                });
-            };
-
-            if (obj.shape === 'rect') {
-                for (let ry = obj.y; ry < obj.y + (obj.h || 1); ry++) {
-                    for (let rx = obj.x; rx < obj.x + (obj.w || 1); rx++) process(rx, ry);
-                }
-            } else if (obj.shape === 'line') {
-                for (let i = 0; i < (obj.length || 0); i++) {
-                    const lx = obj.direction === 'horizontal' ? obj.x + i : obj.x;
-                    const ly = obj.direction === 'vertical' ? obj.y + i : obj.y;
-                    process(lx, ly);
-                }
-            } else {
-                process(obj.x, obj.y);
-            }
-        }
-
-        // 1. 地面 (WALKABLE)
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const cellValue = this.mapGrid[y][x];
-                if (cellValue?.startsWith('WALKABLE:')) {
-                    const type = cellValue.split(':')[1] as TileType;
-                    const config = this.tileConfig[type];
+                    const config = this.tileConfig[type as TileType];
                     const color = config ? this.colorToHex(config.color) : '#222';
-                    drawIsoTile(x, y, color, false, this.isHighlighted(x, y), undefined, ['top']);
+                    drawIsoTile(x, y, color, type === 'WALL', highlighted);
+                } else {
+                    drawIsoTile(x, y, '#222', false, highlighted);
                 }
             }
-        }
-
-        // 2. 他のアイテムをソートして描画
-        const back = items.filter(i => i.zIndex === 'back');
-        const ysort = items.filter(i => i.zIndex === 'y-sort' || !i.zIndex).sort((a, b) => (a.x + a.y) - (b.x + b.y));
-        const front = items.filter(i => i.zIndex === 'front');
-
-        const renderList = [...back, ...ysort, ...front];
-        for (const item of renderList) {
-            const config = this.tileConfig[item.type as TileType];
-            const color = config ? this.colorToHex(config.color) : '#222';
-            drawIsoTile(item.x, item.y, color, item.type === 'WALL', item.highlighted, item.height, item.faces);
         }
     }
 

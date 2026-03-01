@@ -245,6 +245,7 @@ nav button:hover {
     border: 1px solid #333;
     position: relative;
     width: fit-content;
+    margin: 0 auto;
 }
 
 .grid-cell {
@@ -260,6 +261,9 @@ nav button:hover {
 }
 
 .warp-marker {
+    position: absolute;
+    width: 8px;
+    height: 8px;
     background: #f4b400;
     color: #000;
     font-size: 7px;
@@ -271,6 +275,7 @@ nav button:hover {
     pointer-events: auto;
     cursor: help;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    z-index: 5;
 }
 
 .map-tables {

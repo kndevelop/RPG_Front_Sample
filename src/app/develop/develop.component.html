@@ -62,9 +62,9 @@
                                         [title]="'(' + x + ',' + y + ') ' + (cell || 'EMPTY')">
                                     </div>
                                 </ng-container>
-                                <!-- Warp Points Overlay -->
+                                <!-- Warp Points Overlay (Absolute positioned to avoid grid shift) -->
                                 <div *ngFor="let warp of selectedMapData.warps" class="warp-marker"
-                                    [style.grid-column-start]="warp.x + 1" [style.grid-row-start]="warp.y + 1"
+                                    [style.left.px]="warp.x * 9" [style.top.px]="warp.y * 9"
                                     [class.highlight]="isHighlighted(warp.x, warp.y)"
                                     [title]="'WARP to ' + warp.targetMap + ' (' + warp.targetX + ',' + warp.targetY + ')'">
                                     W
@@ -91,9 +91,6 @@
                                     <th>Type</th>
                                     <th>Pos</th>
                                     <th>Size/Shape</th>
-                                    <th>Z-INDEX</th>
-                                    <th>HEIGHT</th>
-                                    <th>FACES</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -112,15 +109,6 @@
                                         <span *ngIf="obj.shape === 'rect'">{{obj.w}}x{{obj.h}} (Rect)</span>
                                         <span *ngIf="obj.shape === 'line'">Len:{{obj.length}} ({{obj.direction}})</span>
                                         <span *ngIf="obj.shape === 'point'">Point</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge zindex" [class]="obj.zIndex || 'y-sort'">{{obj.zIndex ||
-                                            'y-sort'}}</span>
-                                    </td>
-                                    <td class="num-cell">{{obj.height || '-'}}</td>
-                                    <td class="faces-cell">
-                                        <span *ngFor="let face of (obj.faces || ['top', 'left', 'right'])"
-                                            class="face-tag">{{face}}</span>
                                     </td>
                                 </tr>
                             </tbody>
