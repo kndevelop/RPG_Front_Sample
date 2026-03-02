@@ -43,7 +43,7 @@ export class Renderer {
 
   /** プレイヤーの初期化 */
   private initPlayer(): void {
-    const tex = this.assetLoader.getTexture('player_left');
+    const tex = this.assetLoader.getTexture('player_forward_go');
     if (!tex) return;
 
     this.playerSprite = new PIXI.Sprite(tex);
@@ -163,7 +163,8 @@ export class Renderer {
     console.log("player.facing:" + player.facing);
 
     const isBack = player.facing === 'rightBack' || player.facing === 'leftBack';
-    const texKey = isBack ? 'player_back' : 'player_left';
+    const suffix = player.isMoving ? '_go' : '_stop';
+    const texKey = isBack ? `player_back${suffix}` : `player_forward${suffix}`;
     const tex = this.assetLoader.getTexture(texKey);
 
     if (tex) {

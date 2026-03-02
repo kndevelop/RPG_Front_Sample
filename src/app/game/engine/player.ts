@@ -1,7 +1,8 @@
 import { GAME_CONSTANTS } from './constants';
 import { PlayerState, IdleState } from './player-state';
+import { Vector2 } from './utils/vector';
 
-export type PlayerFacing = 'rightForward' | 'leftForward' | 'rightBack' | 'leftBack' ;
+export type PlayerFacing = 'rightForward' | 'leftForward' | 'rightBack' | 'leftBack';
 
 export class Player {
 
@@ -15,6 +16,11 @@ export class Player {
 
   /** プレイヤーの向き: 右方向='rightForward', 左方向='leftForward', 右後ろ='rightBack', 左後ろ='leftBack' */
   facing: PlayerFacing = 'rightForward';
+
+  /** 移動中かどうか */
+  get isMoving(): boolean {
+    return Vector2.distance({ x: this.x, y: this.y }, { x: this.targetX, y: this.targetY }) > GAME_CONSTANTS.PLAYER_STOP_THRESHOLD;
+  }
 
   /** 現在の状態 */
   private currentState: PlayerState;
