@@ -74,7 +74,12 @@ export class MoveState implements PlayerState {
         }
 
         // 向きの更新
-        this.player.facing = (dx - dy) >= 0 ? 'right' : 'left';
+        // アイソメトリック座標系において、(dx + dy) < 0 はスクリーン座標で「上」方向（背面）
+        if (dx + dy < -0.1) {
+            this.player.facing = (dx - dy) >= 0 ? 'rightBack' : 'leftBack';
+        } else {
+            this.player.facing = (dx - dy) >= 0 ? 'rightForward' : 'leftForward';
+        }
     }
 
     exit(): void {

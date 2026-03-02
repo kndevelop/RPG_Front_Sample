@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { AssetLoaderService } from '../game/services/asset-loader.service';
 import { TILE_CONFIG, TileType } from '../game/engine/game-map';
 import { GAME_CONSTANTS } from '../game/engine/constants';
@@ -30,6 +30,14 @@ export class DevelopComponent implements OnInit, AfterViewInit {
     mapGrid: (string | null)[][] = [];
     hoveredObject: any | null = null;
     hoveredWarp: any | null = null;
+
+    // ブラシモード用ステート
+    selectedBrush: TileType | 'EMPTY' | null = null;
+    selectedLayer: 'WALKABLE' | 'IMPASSABLE' = 'WALKABLE';
+    drawMode: 'point' | 'line' | 'rect' = 'point';
+    isDragging: boolean = false;
+    drawStartPos: { x: number, y: number } | null = null;
+    tempObject: any | null = null;
 
     constructor(private assetLoader: AssetLoaderService) { }
 
@@ -65,6 +73,8 @@ export class DevelopComponent implements OnInit, AfterViewInit {
 
         if (this.mapAssets.length > 0) {
             this.selectMap(this.mapAssets[0].key);
+            // デフォルトのブラシを選択
+            this.selectBrush('GRASS');
         }
     }
 
@@ -81,7 +91,9 @@ export class DevelopComponent implements OnInit, AfterViewInit {
 
     selectMap(key: string): void {
         this.selectedMapKey = key;
-        this.selectedMapData = this.assetLoader.getData(key);
+        const data = this.assetLoader.getData(key);
+        // 編集のためにディープコピー
+        this.selectedMapData = JSON.parse(JSON.stringify(data));
         if (this.selectedMapData) {
             this.buildPreviewGrid();
             this.renderIsoPreview();
@@ -93,8 +105,12 @@ export class DevelopComponent implements OnInit, AfterViewInit {
         const { width, height } = this.selectedMapData.config || { width: 20, height: 20 };
         this.mapGrid = Array.from({ length: height }, () => Array(width).fill(null));
 
-        const objects = this.selectedMapData.objects || [];
-        for (const obj of objects) {
+        const allObjects = [...(this.selectedMapData.objects || [])];
+        if (this.tempObject) {
+            allObjects.push(this.tempObject);
+        }
+
+        for (const obj of allObjects) {
             const { x, y, w, h, layer, type, shape, length, direction } = obj;
             const drawType = type || 'EMPTY';
 
@@ -134,6 +150,164 @@ export class DevelopComponent implements OnInit, AfterViewInit {
     /** 数値カラーをCSSヘックス文字列に変換 */
     colorToHex(color: number): string {
         return '#' + color.toString(16).padStart(6, '0').toUpperCase();
+    }
+
+    /** ブラシ選択 */
+    selectBrush(type: string): void {
+        this.selectedBrush = type as (TileType | 'EMPTY');
+    }
+
+    /** ブラシ適用 */
+    applyBrush(x: number, y: number, event?: MouseEvent): void {
+        if (!this.selectedBrush || !this.selectedMapData) return;
+
+        if (event) {
+            if (event.type === 'mousedown') {
+                this.isDragging = true;
+                this.drawStartPos = { x, y };
+
+                if (this.drawMode === 'point') {
+                    this.executePointDraw(x, y);
+                } else {
+                    this.calculateTempObject(x, y);
+                }
+            } else if (event.type === 'mouseenter') {
+                // ドラッグ中でない（またはクリックされていない）場合は何もしない
+                // これにより、単なるホバーで不必要な再描画走るのを防ぐ
+                if (!this.isDragging || event.buttons !== 1) {
+                    return;
+                }
+
+                if (this.drawMode === 'point') {
+                    this.executePointDraw(x, y);
+                } else {
+                    this.calculateTempObject(x, y);
+                }
+            }
+        }
+    }
+
+    private executePointDraw(x: number, y: number): void {
+        const type = this.selectedBrush === 'EMPTY' ? null : this.selectedBrush;
+        const layer = this.selectedLayer;
+
+        this.selectedMapData.objects = (this.selectedMapData.objects || []).filter((obj: any) => {
+            return !(obj.x === x && obj.y === y && obj.layer === layer && obj.shape === 'point');
+        });
+
+        if (type !== null) {
+            this.selectedMapData.objects.push({
+                layer: layer,
+                x: x,
+                y: y,
+                type: type,
+                shape: 'point'
+            });
+        } else {
+            // 消しゴムモード (type === null) の場合、その座標にある矩形や線も削除対象にする
+            this.cleanupObjectsAtPoint(x, y, layer);
+        }
+
+        this.buildPreviewGrid();
+        this.renderIsoPreview();
+    }
+
+    private calculateTempObject(currX: number, currY: number): void {
+        if (!this.drawStartPos || !this.selectedBrush) return;
+        const start = this.drawStartPos;
+        const type = this.selectedBrush === 'EMPTY' ? null : this.selectedBrush as TileType;
+
+        if (this.drawMode === 'rect') {
+            const x = Math.min(start.x, currX);
+            const y = Math.min(start.y, currY);
+            const w = Math.abs(currX - start.x) + 1;
+            const h = Math.abs(currY - start.y) + 1;
+            this.tempObject = { layer: this.selectedLayer, x, y, w, h, type, shape: 'rect' };
+        } else if (this.drawMode === 'line') {
+            const dx = Math.abs(currX - start.x);
+            const dy = Math.abs(currY - start.y);
+            if (dx >= dy) {
+                const x = Math.min(start.x, currX);
+                this.tempObject = { layer: this.selectedLayer, x, y: start.y, length: dx + 1, direction: 'horizontal', type, shape: 'line' };
+            } else {
+                const y = Math.min(start.y, currY);
+                this.tempObject = { layer: this.selectedLayer, x: start.x, y, length: dy + 1, direction: 'vertical', type, shape: 'line' };
+            }
+        }
+
+        this.buildPreviewGrid();
+        this.renderIsoPreview();
+    }
+
+    /** ドラッグ終了 */
+    @HostListener('window:mouseup')
+    finishDragging(): void {
+        if (this.isDragging && this.tempObject && this.drawMode !== 'point') {
+            // 暫定オブジェクトを正式に追加
+            if (this.tempObject.type !== null) {
+                this.selectedMapData.objects.push({ ...this.tempObject });
+            } else {
+                // 消しゴムモードなら範囲内のpointを削除（簡易実装）
+                this.cleanupObjectsInRange(this.tempObject);
+            }
+        }
+        this.isDragging = false;
+        this.drawStartPos = null;
+        this.tempObject = null;
+        this.buildPreviewGrid();
+        this.renderIsoPreview();
+    }
+
+    private cleanupObjectsInRange(area: any): void {
+        this.selectedMapData.objects = (this.selectedMapData.objects || []).filter((obj: any) => {
+            if (obj.layer !== area.layer) return true;
+            if (area.shape === 'rect') {
+                return !(obj.x >= area.x && obj.x < area.x + area.w && obj.y >= area.y && obj.y < area.y + area.h);
+            } else if (area.shape === 'line') {
+                if (area.direction === 'horizontal') {
+                    return !(obj.y === area.y && obj.x >= area.x && obj.x < area.x + area.length);
+                } else {
+                    return !(obj.x === area.x && obj.y >= area.y && obj.y < area.y + area.length);
+                }
+            }
+            return true;
+        });
+    }
+
+    /** 指定座標にあるオブジェクトを削除（消しゴム用） */
+    private cleanupObjectsAtPoint(x: number, y: number, layer: string): void {
+        this.selectedMapData.objects = (this.selectedMapData.objects || []).filter((obj: any) => {
+            if (obj.layer !== layer) return true;
+            if (obj.shape === 'point') {
+                return !(obj.x === x && obj.y === y);
+            } else if (obj.shape === 'rect') {
+                return !(x >= obj.x && x < obj.x + (obj.w || 1) && y >= obj.y && y < obj.y + (obj.h || 1));
+            } else if (obj.shape === 'line') {
+                if (obj.direction === 'horizontal') {
+                    return !(y === obj.y && x >= obj.x && x < obj.x + (obj.length || 0));
+                } else {
+                    return !(x === obj.x && y >= obj.y && y < obj.y + (obj.length || 0));
+                }
+            }
+            return true;
+        });
+    }
+
+    /** JSON エクスポート */
+    exportMapJson(): void {
+        if (!this.selectedMapData) return;
+        const json = JSON.stringify(this.selectedMapData, null, 2);
+        navigator.clipboard.writeText(json).then(() => {
+            alert('Map JSON copied to clipboard!');
+        });
+    }
+
+    /** オブジェクト削除 */
+    removeObject(obj: any): void {
+        if (!this.selectedMapData) return;
+        this.selectedMapData.objects = (this.selectedMapData.objects || []).filter((o: any) => o !== obj);
+        this.buildPreviewGrid();
+        this.renderIsoPreview();
     }
 
     private renderIsoPreview(): void {
@@ -267,5 +441,13 @@ export class DevelopComponent implements OnInit, AfterViewInit {
         }
 
         return false;
+    }
+
+    trackByCell(index: number, cell: any): string {
+        return index.toString();
+    }
+
+    trackByRow(index: number, row: any): string {
+        return index.toString();
     }
 }

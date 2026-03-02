@@ -1,7 +1,7 @@
 import { GAME_CONSTANTS } from './constants';
 import { PlayerState, IdleState } from './player-state';
 
-export type PlayerFacing = 'right' | 'left';
+export type PlayerFacing = 'rightForward' | 'leftForward' | 'rightBack' | 'leftBack' ;
 
 export class Player {
 
@@ -13,8 +13,8 @@ export class Player {
 
   speed = GAME_CONSTANTS.PLAYER_DEFAULT_SPEED;
 
-  /** プレイヤーの向き: 右方向='right', 左方向='left' */
-  facing: PlayerFacing = 'right';
+  /** プレイヤーの向き: 右方向='rightForward', 左方向='leftForward', 右後ろ='rightBack', 左後ろ='leftBack' */
+  facing: PlayerFacing = 'rightForward';
 
   /** 現在の状態 */
   private currentState: PlayerState;

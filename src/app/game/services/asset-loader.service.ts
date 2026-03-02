@@ -7,8 +7,8 @@ import * as PIXI from 'pixi.js';
 export class AssetLoaderService {
 
     private readonly assetManifest: Record<string, string> = {
-        'player_right': 'assets/player/player_right.png',
-        'player_left': 'assets/player/player_left.png',
+        'player_left': 'assets/player/pfs.png',
+        'player_back': 'assets/player/pbg.png',
         'tile_grass': 'assets/tiles/grass.png',
         'tile_water': 'assets/tiles/water.png',
         'tile_wall': 'assets/tiles/wall.png',

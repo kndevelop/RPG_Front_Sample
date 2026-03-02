@@ -43,7 +43,7 @@ export class Renderer {
 
   /** プレイヤーの初期化 */
   private initPlayer(): void {
-    const tex = this.assetLoader.getTexture('player_right');
+    const tex = this.assetLoader.getTexture('player_left');
     if (!tex) return;
 
     this.playerSprite = new PIXI.Sprite(tex);
@@ -116,10 +116,10 @@ export class Renderer {
 
           // タイルのスクリーン座標を計算
           const screenPos = this.iso.getScreenPos(
-            x, 
+            x,
             y,
-            context.centerX, 
-            context.centerY, 
+            context.centerX,
+            context.centerY,
             context.offset
           );
 
@@ -156,14 +156,31 @@ export class Renderer {
     }
   }
 
-  private renderPlayerSprite(player: Player, { centerX, centerY }: any) {
+  private renderPlayerSprite(player: Player, screenPos: { centerX: number, centerY: number }) {
     if (!this.playerSprite) return;
+    const { centerX, centerY } = screenPos;
 
-    const key = player.facing === 'right' ? 'player_right' : 'player_left';
-    const tex = this.assetLoader.getTexture(key);
+    console.log("player.facing:" + player.facing);
+
+    const isBack = player.facing === 'rightBack' || player.facing === 'leftBack';
+    const texKey = isBack ? 'player_back' : 'player_left';
+    const tex = this.assetLoader.getTexture(texKey);
 
     if (tex) {
       this.playerSprite.texture = tex;
+    }
+
+    // サイズを定数から再設定
+    this.playerSprite.width = GAME_CONSTANTS.PLAYER_WIDTH;
+    this.playerSprite.height = GAME_CONSTANTS.PLAYER_HEIGHT;
+
+    // scale.x の符号で向きを制御（背面向きの場合は反転させない）
+    if (player.facing === 'leftForward' || player.facing === 'leftBack') {
+      this.playerSprite.scale.x = Math.abs(this.playerSprite.scale.x);
+    } else if (player.facing === 'rightForward' || player.facing === 'rightBack') {
+      this.playerSprite.scale.x = -Math.abs(this.playerSprite.scale.x);
+    } else {
+      this.playerSprite.scale.x = Math.abs(this.playerSprite.scale.x);
     }
 
     this.playerSprite.x = centerX;

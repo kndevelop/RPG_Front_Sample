@@ -36,29 +36,73 @@
             </div>
         </section>
         <section *ngIf="activeTab === 'maps'" class="tab-content">
-            <div class="map-controls">
-                <select #mapSelect (change)="selectMap(mapSelect.value)">
-                    <option *ngFor="let map of mapAssets" [value]="map.key" [selected]="map.key === selectedMapKey">{{
-                        map.key }}</option>
-                </select>
-                <div class="map-stats" *ngIf="selectedMapData">
-                    Size: {{selectedMapData.config.width}}x{{selectedMapData.config.height}} |
-                    Objects: {{selectedMapData.objects.length}} |
-                    Warps: {{selectedMapData.warps.length}}
+            <div class="map-controls editor-toolbar">
+                <div class="control-group">
+                    <label>Map:</label>
+                    <select #mapSelect (change)="selectMap(mapSelect.value)">
+                        <option *ngFor="let map of mapAssets" [value]="map.key" [selected]="map.key === selectedMapKey">
+                            {{ map.key }}</option>
+                    </select>
                 </div>
+
+                <div class="control-group">
+                    <label>Layer:</label>
+                    <div class="btn-group">
+                        <button [class.active]="selectedLayer === 'WALKABLE'"
+                            (click)="selectedLayer = 'WALKABLE'">WALKABLE</button>
+                        <button [class.active]="selectedLayer === 'IMPASSABLE'"
+                            (click)="selectedLayer = 'IMPASSABLE'">IMPASSABLE</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Shape:</label>
+                    <div class="btn-group">
+                        <button [class.active]="drawMode === 'point'" (click)="drawMode = 'point'"
+                            title="Point Mode">DOT</button>
+                        <button [class.active]="drawMode === 'line'" (click)="drawMode = 'line'"
+                            title="Line Mode">LINE</button>
+                        <button [class.active]="drawMode === 'rect'" (click)="drawMode = 'rect'"
+                            title="Rect Mode">RECT</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Brush:</label>
+                    <div class="brush-palette">
+                        <button class="brush-btn" [class.active]="selectedBrush === 'EMPTY'"
+                            (click)="selectBrush('EMPTY')" title="Eraser">
+                            <span class="eraser-icon">❌</span>
+                        </button>
+                        <button *ngFor="let type of tileConfig | keyvalue" class="brush-btn"
+                            [class.active]="selectedBrush === type.key" (click)="selectBrush(type.key)"
+                            [title]="type.key">
+                            <span class="color-swatch" [style.background-color]="getTileColor(type.key)"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="export-btn" (click)="exportMapJson()">Export JSON</button>
+            </div>
+
+            <div class="map-stats" *ngIf="selectedMapData">
+                Size: {{selectedMapData.config.width}}x{{selectedMapData.config.height}} |
+                Objects: {{selectedMapData.objects.length}} |
+                Warps: {{selectedMapData.warps.length}}
             </div>
 
             <div class="map-viz-container" *ngIf="selectedMapData">
                 <div class="map-visuals">
                     <div class="map-grid-section">
-                        <h3>Map Grid (Top-down)</h3>
+                        <h3>Map Grid (Top-down) - [Click/Drag to Draw]</h3>
                         <div class="map-grid-scroll">
-                            <div class="map-grid-container"
+                            <div class="map-grid-container" (mouseleave)="finishDragging()"
                                 [style.grid-template-columns]="'repeat(' + selectedMapData.config.width + ', 8px)'">
-                                <ng-container *ngFor="let row of mapGrid; let y = index">
-                                    <div *ngFor="let cell of row; let x = index" class="grid-cell"
+                                <ng-container *ngFor="let row of mapGrid; let y = index; trackBy: trackByRow">
+                                    <div *ngFor="let cell of row; let x = index; trackBy: trackByCell" class="grid-cell"
                                         [style.background-color]="getTileColor(cell)"
-                                        [class.highlight]="isHighlighted(x, y)"
+                                        [class.highlight]="isHighlighted(x, y)" (mousedown)="applyBrush(x, y, $event)"
+                                        (mouseenter)="applyBrush(x, y, $event)" (mouseup)="finishDragging()"
                                         [title]="'(' + x + ',' + y + ') ' + (cell || 'EMPTY')">
                                     </div>
                                 </ng-container>
@@ -91,6 +135,7 @@
                                     <th>Type</th>
                                     <th>Pos</th>
                                     <th>Size/Shape</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -109,6 +154,10 @@
                                         <span *ngIf="obj.shape === 'rect'">{{obj.w}}x{{obj.h}} (Rect)</span>
                                         <span *ngIf="obj.shape === 'line'">Len:{{obj.length}} ({{obj.direction}})</span>
                                         <span *ngIf="obj.shape === 'point'">Point</span>
+                                    </td>
+                                    <td class="action-cell">
+                                        <button class="delete-btn" (click)="removeObject(obj); $event.stopPropagation()"
+                                            title="Delete Object">×</button>
                                     </td>
                                 </tr>
                             </tbody>
