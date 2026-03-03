@@ -17,6 +17,9 @@ export const GAME_CONSTANTS = {
 
     // 壁の設定
     WALL_HEIGHT: 20,
+
+    // アニメーション設定
+    PLAYER_ANIM_SPEED: 0.25, // 1ステップ（go/stop）の秒数
 };
 
 /** 座標インターフェース */

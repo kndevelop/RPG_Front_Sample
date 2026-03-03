@@ -39,6 +39,12 @@ export class DevelopComponent implements OnInit, AfterViewInit {
     drawStartPos: { x: number, y: number } | null = null;
     tempObject: any | null = null;
 
+    // Isometric Preview パン用ステート
+    isoPanX: number = 0;
+    isoPanY: number = 0;
+    isIsoPanning: boolean = false;
+    private lastIsoMousePos: { x: number, y: number } | null = null;
+
     constructor(private assetLoader: AssetLoaderService) { }
 
     async ngOnInit(): Promise<void> {
@@ -95,6 +101,9 @@ export class DevelopComponent implements OnInit, AfterViewInit {
         // 編集のためにディープコピー
         this.selectedMapData = JSON.parse(JSON.stringify(data));
         if (this.selectedMapData) {
+            // マップ切り替え時にパンをリセット
+            this.isoPanX = 0;
+            this.isoPanY = 0;
             this.buildPreviewGrid();
             this.renderIsoPreview();
         }
@@ -322,15 +331,19 @@ export class DevelopComponent implements OnInit, AfterViewInit {
         const tileW = 16; // プレビュー用のタイル幅 (縮小)
         const tileH = 8;  // プレビュー用のタイル高さ (縮小)
 
-        // キャンバスサイズを調整
-        canvas.width = (width + height) * (tileW / 2) + 20;
-        canvas.height = (width + height) * (tileH / 2) + 20;
+        // キャンバスサイズを親要素に合わせるか、固定にする
+        // ここでは親要素の幅を活用しつつ、高さはコンテンツに合わせる
+        const container = canvas.parentElement;
+        if (container) {
+            canvas.width = container.clientWidth;
+            canvas.height = 400; // 固定の高さにするか、CSSで制御
+        }
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 中心をオフセット
-        const offsetX = canvas.width / 2;
-        const offsetY = 10;
+        // 中心をオフセット (パンを考慮)
+        const offsetX = (canvas.width / 2) + this.isoPanX;
+        const offsetY = 50 + this.isoPanY; // 少し余裕を持たせる
 
         // タイル描画の補助関数
         const drawIsoTile = (x: number, y: number, color: string, isWall: boolean = false, highlight: boolean = false) => {
@@ -449,5 +462,32 @@ export class DevelopComponent implements OnInit, AfterViewInit {
 
     trackByRow(index: number, row: any): string {
         return index.toString();
+    }
+
+    // --- Isometric Preview Mouse Events ---
+
+    onIsoMouseDown(event: MouseEvent): void {
+        this.isIsoPanning = true;
+        this.lastIsoMousePos = { x: event.clientX, y: event.clientY };
+    }
+
+    @HostListener('window:mousemove', ['$event'])
+    onIsoMouseMove(event: MouseEvent): void {
+        if (!this.isIsoPanning || !this.lastIsoMousePos) return;
+
+        const dx = event.clientX - this.lastIsoMousePos.x;
+        const dy = event.clientY - this.lastIsoMousePos.y;
+
+        this.isoPanX += dx;
+        this.isoPanY += dy;
+
+        this.lastIsoMousePos = { x: event.clientX, y: event.clientY };
+        this.renderIsoPreview();
+    }
+
+    @HostListener('window:mouseup')
+    onIsoMouseUp(): void {
+        this.isIsoPanning = false;
+        this.lastIsoMousePos = null;
     }
 }

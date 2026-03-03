@@ -163,8 +163,15 @@ export class Renderer {
     console.log("player.facing:" + player.facing);
 
     const isBack = player.facing === 'rightBack' || player.facing === 'leftBack';
-    const suffix = player.isMoving ? '_go' : '_stop';
-    const texKey = isBack ? `player_back${suffix}` : `player_forward${suffix}`;
+
+    // 歩行アニメーション: 移動中はタイマーに基づいて _go と _stop を交互に切り替える
+    let animatingSuffix = '_stop';
+    if (player.isMoving) {
+      // PLAYER_ANIM_SPEED 秒ごとに切り替え
+      animatingSuffix = (Math.floor(player.animationTimer / GAME_CONSTANTS.PLAYER_ANIM_SPEED) % 2 === 0) ? '_go' : '_stop';
+    }
+
+    const texKey = isBack ? `player_back${animatingSuffix}` : `player_forward${animatingSuffix}`;
     const tex = this.assetLoader.getTexture(texKey);
 
     if (tex) {
@@ -175,10 +182,10 @@ export class Renderer {
     this.playerSprite.width = GAME_CONSTANTS.PLAYER_WIDTH;
     this.playerSprite.height = GAME_CONSTANTS.PLAYER_HEIGHT;
 
-    // scale.x の符号で向きを制御（背面向きの場合は反転させない）
-    if (player.facing === 'leftForward' || player.facing === 'leftBack') {
-      this.playerSprite.scale.x = Math.abs(this.playerSprite.scale.x);
-    } else if (player.facing === 'rightForward' || player.facing === 'rightBack') {
+    // scale.x の符号で向きを制御
+    // rightForward / rightBack は右向き（デフォルトテクスチャが左向きと仮定して反転）
+    // leftForward / leftBack は左向き
+    if (player.facing === 'rightForward' || player.facing === 'rightBack') {
       this.playerSprite.scale.x = -Math.abs(this.playerSprite.scale.x);
     } else {
       this.playerSprite.scale.x = Math.abs(this.playerSprite.scale.x);

@@ -120,7 +120,7 @@
                     <div class="map-preview-section">
                         <h3>Isometric Preview</h3>
                         <div class="map-iso-container">
-                            <canvas #isoCanvas></canvas>
+                            <canvas #isoCanvas (mousedown)="onIsoMouseDown($event)"></canvas>
                         </div>
                     </div>
                 </div>

@@ -17,6 +17,9 @@ export class Player {
   /** プレイヤーの向き: 右方向='rightForward', 左方向='leftForward', 右後ろ='rightBack', 左後ろ='leftBack' */
   facing: PlayerFacing = 'rightForward';
 
+  /** アニメーション用の経過時間 */
+  animationTimer = 0;
+
   /** 移動中かどうか */
   get isMoving(): boolean {
     return Vector2.distance({ x: this.x, y: this.y }, { x: this.targetX, y: this.targetY }) > GAME_CONSTANTS.PLAYER_STOP_THRESHOLD;
@@ -40,6 +43,7 @@ export class Player {
   }
 
   update(delta: number) {
+    this.animationTimer += delta;
     this.currentState.update(delta);
   }
 }
