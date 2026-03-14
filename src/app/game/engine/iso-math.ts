@@ -1,22 +1,23 @@
+import { Injectable } from '@angular/core';
 import { GAME_CONSTANTS } from './constants';
 
+@Injectable({
+  providedIn: 'root'
+})
 export class IsoMath {
 
-  constructor(
-    public tileWidth = GAME_CONSTANTS.TILE_WIDTH,
-    public tileHeight = GAME_CONSTANTS.TILE_HEIGHT
-  ) { }
+  constructor() { }
 
   mapToScreen(x: number, y: number) {
     return {
-      x: (x - y) * (this.tileWidth / 2),
-      y: (x + y) * (this.tileHeight / 2)
+      x: (x - y) * (GAME_CONSTANTS.TILE_WIDTH / 2),
+      y: (x + y) * (GAME_CONSTANTS.TILE_HEIGHT / 2)
     };
   }
 
   screenToMap(sx: number, sy: number) {
-    const mx = (sx / (this.tileWidth / 2) + sy / (this.tileHeight / 2)) / 2;
-    const my = (sy / (this.tileHeight / 2) - sx / (this.tileWidth / 2)) / 2;
+    const mx = (sx / (GAME_CONSTANTS.TILE_WIDTH / 2) + sy / (GAME_CONSTANTS.TILE_HEIGHT / 2)) / 2;
+    const my = (sy / (GAME_CONSTANTS.TILE_HEIGHT / 2) - sx / (GAME_CONSTANTS.TILE_WIDTH / 2)) / 2;
     return { x: Math.floor(mx), y: Math.floor(my) };
   }
 
@@ -25,7 +26,7 @@ export class IsoMath {
     const pos = this.mapToScreen(x, y);
     return {
       x: pos.x,
-      y: pos.y + this.tileHeight / 2
+      y: pos.y + GAME_CONSTANTS.TILE_HEIGHT / 2
     };
   }
 

@@ -3,6 +3,7 @@ import * as PIXI from 'pixi.js';
 import { GameEngine } from './engine/game-engine';
 import { AssetLoaderService } from './services/asset-loader.service';
 import { GameEventService } from './services/game-event.service';
+import { IsoMath } from './engine/iso-math';
 
 @Component({
   selector: 'game',
@@ -19,9 +20,14 @@ export class GameComponent implements AfterViewInit {
 
   private gameEngine?: GameEngine;
 
+  get player() {
+    return this.gameEngine?.player;
+  }
+
   constructor(
     private assetLoader: AssetLoaderService,
-    private gameEvent: GameEventService
+    private gameEvent: GameEventService,
+    private iso: IsoMath
   ) { }
 
   handleMapChange(mapKey: string): void {
@@ -41,7 +47,7 @@ export class GameComponent implements AfterViewInit {
     this.container.nativeElement.appendChild(app.view as any);
 
     this.assetLoader.loadAssets().then(() => {
-      this.gameEngine = new GameEngine(app, this.assetLoader, this.gameEvent);
+      this.gameEngine = new GameEngine(app, this.assetLoader, this.gameEvent, this.iso);
     });
 
     // ブラウザの自動再生制限を回避するため、最初のクリックでBGMを再生

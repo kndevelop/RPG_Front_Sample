@@ -4,43 +4,200 @@
   position: relative;
 }
 
-.map-controls {
-  position: sticky;
-  top: 0;
-  z-index: 9999;
+.player-hud {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  right: 20px; /* 横幅を広げるため追加 */
+  z-index: 1000;
   display: flex;
-  justify-content: center;
-  gap: 15px;
-  padding: 15px;
-  background: #ffffff;
-  border-bottom: 2px solid #333;
-  width: 100%;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+  padding: 8px;
+  background-color: rgba(200, 200, 200, 0.15); /* 透明なガラス風 */
+  border-radius: 20px;
+  backdrop-filter: blur(12px); /* ぼかしを強める */
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(200, 200, 200, 0.4); /* 白っぽく薄い境界線 */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.map-controls button {
-  padding: 8px 16px;
+.hud-row {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  padding: 3px 12px 3px 4px;
+}
+
+/* LV Badge Section */
+.top-row {
+  padding-left: 0;
+  gap: 10px;
+  flex: 1; /* EXPやコインの幅を広げるため割合を増やす */
+}
+
+.lv-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -5px;
+}
+
+.lv-badge img {
+  width: 60px;
+  height: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.lv-text {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); /* 文字を見やすくするためのシャドウ */
+}
+
+/* EXP Bar Section */
+.exp-container {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.exp-info {
+  text-align: center;
+  line-height: 1;
+}
+
+.exp-values {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.exp-bar-bg {
+  height: 15px;
+  background: rgba(0, 0, 0, 0.3); /* 背景を暗い半透明に */
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.exp-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, #a4cc6a, #8db652);
+  border-radius: 3px;
+}
+
+/* Coin Section */
+.coin-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 2px 10px;
+  border-radius: 15px;
+}
+
+.coin-container img {
+  width: 32px;
+  height: auto;
+}
+
+.coin-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Vertical Container for HP/SP */
+.status-row-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Status Bars (HP/SP) */
+.status-row {
+  width: 100%;
+  gap: 8px;
+  padding: 2px 12px 2px 6px;
+  border-radius: 10px;
+}
+
+.status-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 45px;
+}
+
+.status-icon img {
+  width: 18px;
+  height: 20px;
+}
+
+.status-label {
   font-family: 'Outfit', sans-serif;
   font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  background: white;
-  border: 1px solid #ccc;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.status-bar-bg {
+  flex: 1;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
 }
 
-.map-controls button:hover {
-  background: #f0f0f0;
-  border-color: #999;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.status-bar-fill {
+  height: 100%;
+  border-radius: 5px;
 }
 
-.map-controls button:active {
-  transform: translateY(0);
+.hp-fill {
+  background: linear-gradient(to bottom, #ff9e9e, #f27c7c);
+}
+
+.sp-fill {
+  background: linear-gradient(to bottom, #8ec4f5, #6baae3);
+}
+
+.status-values {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  min-width: 70px;
+  text-align: right;
 }
 
 .game-container {

@@ -20,6 +20,16 @@ export class Player {
   /** アニメーション用の経過時間 */
   animationTimer = 0;
 
+  // ステータス
+  hp = 1845;
+  maxHp = 2150;
+  sp = 128;
+  maxSp = 180;
+  exp = 6720;
+  maxExp = 8500;
+  level = 25;
+  coins = 15780;
+
   /** 移動中かどうか */
   get isMoving(): boolean {
     return Vector2.distance({ x: this.x, y: this.y }, { x: this.targetX, y: this.targetY }) > GAME_CONSTANTS.PLAYER_STOP_THRESHOLD;

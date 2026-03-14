@@ -10,20 +10,19 @@ import { GameEventService } from '../services/game-event.service';
 
 export class GameEngine {
 
-  private iso = new IsoMath();
-  private player = new Player();
+  public player = new Player();
   private map = new GameMap();
-  private camera = new Camera(this.iso);
+  private camera: Camera;
   private renderer: Renderer;
   private input: InputManager;
   private isTransitioning = false;
-
   constructor(
     private app: PIXI.Application,
     private assetLoader: AssetLoaderService,
-    private gameEvent: GameEventService
+    private gameEvent: GameEventService,
+    private iso: IsoMath
   ) {
-
+    this.camera = new Camera(this.iso);
     this.renderer = new Renderer(app, this.iso, this.assetLoader);
     this.input = new InputManager(app, this.iso, this.camera, this.player, this.gameEvent);
 

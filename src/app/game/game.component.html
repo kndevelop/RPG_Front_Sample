@@ -1,12 +1,55 @@
-<div class="map-controls">
-    <button (click)="handleMapChange('map_default')">デフォルト</button>
-    <button (click)="handleMapChange('map_town')">町</button>
-    <button (click)="handleMapChange('map_dungeon')">ダンジョン</button>
-    <button (click)="handleMapChange('map_lshape')">L字</button>
+<div class="player-hud" *ngIf="player">
+    <!-- Top Row: LV & EXP & Coins -->
+    <div class="hud-row top-row">
+        <div class="lv-badge">
+            <img src="assets/ui/icon_lv.png" alt="LV">
+            <span class="lv-text">{{player.level}}</span>
+        </div>
+        <div class="exp-container">
+            <div class="exp-bar-bg">
+                <div class="exp-bar-fill" [style.width.%]="(player.exp / player.maxExp) * 100"></div>
+            </div>
+            <div class="exp-info">
+                <span class="exp-values">{{player.exp}} / {{player.maxExp}}</span>
+            </div>
+        </div>
+        <div class="coin-container">
+            <img src="assets/ui/icon_coin.png" alt="Coins">
+            <span class="coin-text">{{player.coins | number}}</span>
+        </div>
+    </div>
+
+    <!-- Bottom Row: Status Bars (HP & SP Side-by-side) -->
+    <div class="status-row-container">
+        <!-- HP -->
+        <div class="hud-row status-row hp-row compact">
+            <div class="status-icon">
+                <img src="assets/ui/icon_hp.png" alt="HP">
+                <span class="status-label">HP</span>
+            </div>
+            <div class="status-bar-bg">
+                <div class="status-bar-fill hp-fill" [style.width.%]="(player.hp / player.maxHp) * 100"></div>
+            </div>
+            <div class="status-values">{{player.hp}} / {{player.maxHp}}</div>
+        </div>
+
+        <!-- SP -->
+        <div class="hud-row status-row sp-row compact">
+            <div class="status-icon">
+                <img src="assets/ui/icon_sp.png" alt="SP">
+                <span class="status-label">SP</span>
+            </div>
+            <div class="status-bar-bg">
+                <div class="status-bar-fill sp-fill" [style.width.%]="(player.sp / player.maxSp) * 100"></div>
+            </div>
+            <div class="status-values">{{player.sp}} / {{player.maxSp}}</div>
+        </div>
+    </div>
 </div>
 <div #container class="game-container">
+    <!--
     <audio #bgmAudio id="myAudio" loop>
         <source src="assets/bgm/私の村にも春が来た.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
+        Your browser does not support the audio element. 
+    </audio>-->
 </div>
