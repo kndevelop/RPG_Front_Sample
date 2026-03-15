@@ -9,9 +9,6 @@
             <div class="exp-bar-bg">
                 <div class="exp-bar-fill" [style.width.%]="(player.exp / player.maxExp) * 100"></div>
             </div>
-            <div class="exp-info">
-                <span class="exp-values">{{player.exp}} / {{player.maxExp}}</span>
-            </div>
         </div>
         <div class="coin-container">
             <img src="assets/ui/icon_coin.png" alt="Coins">
@@ -29,8 +26,8 @@
             </div>
             <div class="status-bar-bg">
                 <div class="status-bar-fill hp-fill" [style.width.%]="(player.hp / player.maxHp) * 100"></div>
+                <div class="status-values">{{player.hp}} / {{player.maxHp}}</div>
             </div>
-            <div class="status-values">{{player.hp}} / {{player.maxHp}}</div>
         </div>
 
         <!-- SP -->
@@ -41,8 +38,8 @@
             </div>
             <div class="status-bar-bg">
                 <div class="status-bar-fill sp-fill" [style.width.%]="(player.sp / player.maxSp) * 100"></div>
+                <div class="status-values">{{player.sp}} / {{player.maxSp}}</div>
             </div>
-            <div class="status-values">{{player.sp}} / {{player.maxSp}}</div>
         </div>
     </div>
 </div>
