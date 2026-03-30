@@ -21,6 +21,12 @@ export class Renderer {
   /** 現在画面に表示されているスプライトのリスト */
   private activeSprites: PIXI.Sprite[] = [];
 
+  /** Graphicsのプール（再利用用） */
+  private graphicsPool: PIXI.Graphics[] = [];
+  /** 現在画面に表示されているGraphicsのリスト */
+  private activeGraphics: PIXI.Graphics[] = [];
+
+
   constructor(
     private app: PIXI.Application,
     private iso: IsoMath,
@@ -82,13 +88,30 @@ export class Renderer {
     return sprite;
   }
 
-  /** 全てのスプライトをプールに戻す（非表示にする） */
+  /** プールからGraphicsを取得、なければ新規作成 */
+  private getGraphicsFromPool(): PIXI.Graphics {
+    const g = this.graphicsPool.pop() || new PIXI.Graphics();
+    g.clear();
+    g.visible = true;
+    g.alpha = 1.0;
+    this.activeGraphics.push(g);
+    this.mapContainer.addChild(g);
+    return g;
+  }
+
+  /** 全てのスプライトとGraphicsをプールに戻す（非表示にする） */
   private resetSprites() {
     for (const sprite of this.activeSprites) {
       sprite.visible = false;
       this.spritePool.push(sprite);
     }
     this.activeSprites = [];
+
+    for (const g of this.activeGraphics) {
+      g.visible = false;
+      this.graphicsPool.push(g);
+    }
+    this.activeGraphics = [];
   }
 
   draw(map: GameMap, player: Player, camera: Camera) {
@@ -160,8 +183,6 @@ export class Renderer {
     if (!this.playerSprite) return;
     const { centerX, centerY } = screenPos;
 
-    console.log("player.facing:" + player.facing);
-
     const isBack = player.facing === 'rightBack' || player.facing === 'leftBack';
 
     // 歩行アニメーション: 移動中はタイマーに基づいて _go と _stop を交互に切り替える
@@ -214,7 +235,8 @@ export class Renderer {
     const config = TILE_CONFIG[type];
     const tex = this.tileTextures[type];
 
-    if (type === 'WALL') {
+    if (type === 'WALL' && (!tex || !tex.valid)) {
+      // 画像が用意されていない場合のフォールバックとして図形描画
       this.drawWallTile(screenX, screenY, config.color, config.wallColor ?? 0x3E2723);
     } else if (tex && tex.valid) {
       const sprite = this.getSpriteFromPool(tex);
@@ -241,7 +263,7 @@ export class Renderer {
   }
 
   private drawColorTile(x: number, y: number, color: number, type: TileType): void {
-    const tile = new PIXI.Graphics();
+    const tile = this.getGraphicsFromPool();
     const alpha = type === 'WATER' ? 0.85 : 1.0;
     const { TILE_HALF_WIDTH: hw, TILE_HALF_HEIGHT: hh } = GAME_CONSTANTS;
 
@@ -256,7 +278,6 @@ export class Renderer {
 
     tile.x = x;
     tile.y = y;
-    this.mapContainer.addChild(tile);
   }
 
   private drawIsoDiamond(g: PIXI.Graphics, hw: number, hh: number) {
@@ -269,40 +290,33 @@ export class Renderer {
 
   private drawWallTile(x: number, y: number, topColor: number, sideColor: number): void {
     const { WALL_HEIGHT: wh, TILE_HALF_WIDTH: hw, TILE_HALF_HEIGHT: hh } = GAME_CONSTANTS;
+    const g = this.getGraphicsFromPool();
 
-    const wallContainer = new PIXI.Container();
+    this.drawIsoBlock(g, hw, hh, wh, topColor, sideColor);
 
+    g.x = x;
+    g.y = y;
+  }
+
+  private drawIsoBlock(g: PIXI.Graphics, hw: number, hh: number, wh: number, topColor: number, sideColor: number): void {
     // 前面左
-    const sideLeft = new PIXI.Graphics();
-    sideLeft.beginFill(sideColor);
-    sideLeft.moveTo(-hw, hh);
-    sideLeft.lineTo(0, hh * 2);
-    sideLeft.lineTo(0, hh * 2 + wh);
-    sideLeft.lineTo(-hw, hh + wh);
-    sideLeft.closePath();
-    wallContainer.addChild(sideLeft);
+    this.drawQuad(g, sideColor, [-hw, hh, 0, hh * 2, 0, hh * 2 + wh, -hw, hh + wh]);
 
     // 前面右
-    const sideRight = new PIXI.Graphics();
     const rightColor = this.blendColor(sideColor, 0xFFFFFF, 0.15);
-    sideRight.beginFill(rightColor);
-    sideRight.moveTo(0, hh * 2);
-    sideRight.lineTo(hw, hh);
-    sideRight.lineTo(hw, hh + wh);
-    sideRight.lineTo(0, hh * 2 + wh);
-    sideRight.closePath();
-    wallContainer.addChild(sideRight);
+    this.drawQuad(g, rightColor, [0, hh * 2, hw, hh, hw, hh + wh, 0, hh * 2 + wh]);
 
     // 上面
-    const top = new PIXI.Graphics();
-    top.beginFill(topColor);
-    this.drawIsoDiamond(top, hw, hh);
-    top.y = -wh;
-    wallContainer.addChild(top);
+    this.drawQuad(g, topColor, [0, -wh, hw, hh - wh, 0, (hh * 2) - wh, -hw, hh - wh]);
+  }
 
-    wallContainer.x = x;
-    wallContainer.y = y;
-    this.mapContainer.addChild(wallContainer);
+  /**
+   * 任意の4点（または多角形）を単一色で塗りつぶして描画するヘルパー
+   */
+  private drawQuad(g: PIXI.Graphics, color: number, points: number[]): void {
+    g.beginFill(color);
+    g.drawPolygon(points);
+    g.endFill();
   }
 
   private blendColor(base: number, blend: number, factor: number): number {
