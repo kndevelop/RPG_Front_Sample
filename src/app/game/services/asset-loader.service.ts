@@ -44,11 +44,11 @@ export class AssetLoaderService {
         // 個別にロードすることで、一つが失敗しても他が読み込まれるようにする
         const promises = keys.map(key =>
             PIXI.Assets.load(key)
-                .then(asset => {
+                .then((asset: any) => {
                     // console.log(`Loaded asset: ${key}`);
                     return asset;
                 })
-                .catch(err => {
+                .catch((err: any) => {
                     console.error(`Failed to load asset: ${key} from ${this.assetManifest[key]}`);
                     return null; // 失敗しても null を返して全体の Promise.all を止めない
                 })
