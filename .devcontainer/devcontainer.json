@@ -1,0 +1,16 @@
+{
+  "name": "rpg_sample",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [4200],
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

@@ -1,56 +1,55 @@
-## codespaceで開けるようにする
-repositoryのsettingにてTemplate repositoryにチェックを付ける
-repositoryのcodeにてUse this templateからOpen in a codespace
+# RPG_Front_Sample
 
-## 環境構築
+このプロジェクトは、Angular と PIXI.js を使用して構築された、アイソメトリック（クォータービュー）形式の RPG フロントエンドサンプルです。
 
-### codespaceにangular CLIをinstallする
-下記のコマンドでインストール
+## 主な機能
 
-```
-$ npm install -g @angular/cli
-```
+- **アイソメトリックエンジン**: `IsoMath` による座標変換（マップ座標 ↔ 画面座標）。
+- **タイルベースのマップシステム**:
+  - `GameMap` クラスによる 2 次元レイアウト管理。
+  - タイルタイプ（草地、水辺、壁、道）に応じた通行判定。
+  - 立体的な壁（WALL）の自動描画。
+- **動的なレンダリング**:
+  - タイルごとのテクスチャ画像適用、および画像がない場合のカラーフォールバック機能。
+  - プレイヤーのカメラ追従と奥行きを考慮した描画順序。
+- **プレイヤー操作**:
+  - クリックした位置への自動移動。
+  - 移動方向（右下/左上）に応じたスプライトの自動反転。
 
-### NODEにOPTION追加
+## 技術スタック
 
-普通にアプリを起動しようとすると下記のエラーが出る
+- **Framework**: Angular
+- **Rendering**: PIXI.js v7
+- **Language**: TypeScript
 
-'ERR_OSSL_EVP_UNSUPPORTED'
+## プロジェクト構造
 
-対策として下記の環境変数を設定する
-
-```
-$ export NODE_OPTIONS=--openssl-legacy-provider
-```
-
-### MySQL環境の構築手順
-イメージの取得
-```
-$ docker image pull mysql:latest
-```
-ボリュームの作成
-```
-$ docker volume create test
-```
-コンテナの起動
-```
-docker container start my-server
-```
-
-#### コンテナの作成方法
-```
-$ docker container run --name test-mysql -v test:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=hogehoge -d mysql:latest
-```
-※「–name」のあとにコンテナ名（「test-mysql」）を指定しています。
-※「-v」で先ほど作成したボリューム（「test」）を、Data Volumeとして指定しています。
-※「-e」でパスワードを指定しています。上記例では「hogehoge」の部分です。
-　パスワードは任意で変更してください。
-
-### アプリの起動
-```
-$ ng serve --open
+```text
+src/app/game/
+├── engine/             # ゲームコアエンジン
+│   ├── camera.ts       # カメラ制御
+│   ├── game-engine.ts  # 全体制御・入出力
+│   ├── game-map.ts     # マップデータ・衝突判定
+│   ├── iso-math.ts     # アイソメトリック計算
+│   ├── player.ts       # プレイヤーロジック
+│   └── renderer.ts     # PIXI.js による描画ロジック
+└── game.component.ts   # Angular コンポーネント（PIXI初期化・BGM制御）
 ```
 
-### 参考記事
-DockerでMySQL用コンテナの作成＋データの永続化
-https://www.kagoya.jp/howto/cloud/container/dockermysql/
+## アセットの設定
+
+画像や音声は `src/assets/` に配置します。
+
+### マップチップ (`assets/tiles/`)
+正方形（64x64推奨）の画像を置くと、各タイルに適用されます。
+- `grass.png`: 草地
+- `water.png`: 水辺
+- `wall.png`: 壁（上面に使用）
+- `road.png`: 道
+
+## 開発サーバーの起動
+
+```bash
+npm run start
+```
+起動後、 `http://localhost:4200` にアクセスしてください。

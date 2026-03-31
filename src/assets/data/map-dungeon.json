@@ -1,0 +1,89 @@
+{
+    "config": {
+        "width": 20,
+        "height": 20
+    },
+    "objects": [
+        {
+            "layer": "WALKABLE",
+            "x": 0,
+            "y": 0,
+            "w": 20,
+            "h": 20,
+            "type": "ROAD",
+            "shape": "rect"
+        },
+        {
+            "layer": "IMPASSABLE",
+            "x": 0,
+            "y": 0,
+            "w": 20,
+            "h": 20,
+            "type": "WALL",
+            "shape": "rect"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 1,
+            "y": 1,
+            "w": 18,
+            "h": 1,
+            "type": "ROAD",
+            "shape": "rect"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 1,
+            "y": 1,
+            "w": 1,
+            "h": 18,
+            "type": "ROAD",
+            "shape": "rect"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 18,
+            "y": 1,
+            "w": 1,
+            "h": 18,
+            "type": "ROAD",
+            "shape": "rect"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 1,
+            "y": 18,
+            "w": 18,
+            "h": 1,
+            "type": "ROAD",
+            "shape": "rect"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 5,
+            "y": 5,
+            "w": 10,
+            "h": 10,
+            "type": "ROAD",
+            "shape": "rect"
+        },
+        {
+            "layer": "WALKABLE",
+            "x": 10,
+            "y": 1,
+            "w": 1,
+            "h": 18,
+            "type": "ROAD",
+            "shape": "rect"
+        }
+    ],
+    "warps": [
+        {
+            "x": 10,
+            "y": 1,
+            "targetMap": "map_town",
+            "targetX": 10,
+            "targetY": 10
+        }
+    ]
+}

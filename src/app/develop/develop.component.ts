@@ -1,0 +1,493 @@
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
+import { AssetLoaderService } from '../game/services/asset-loader.service';
+import { TILE_CONFIG, TileType } from '../game/engine/game-map';
+import { GAME_CONSTANTS } from '../game/engine/constants';
+
+@Component({
+    selector: 'app-develop',
+    templateUrl: './develop.component.html',
+    styleUrls: ['./develop.component.css']
+})
+export class DevelopComponent implements OnInit, AfterViewInit {
+    private _isoCanvas!: ElementRef<HTMLCanvasElement>;
+    @ViewChild('isoCanvas') set isoCanvas(content: ElementRef<HTMLCanvasElement>) {
+        if (content) {
+            this._isoCanvas = content;
+            // ビューが更新された後に描画
+            setTimeout(() => this.renderIsoPreview(), 0);
+        }
+    }
+
+    // TILE_CONFIG をテンプレートから使いやすくするための公開プロパティ
+    readonly tileConfig = TILE_CONFIG;
+
+    assets: { key: string, path: string, type: 'image' | 'json' | 'other' }[] = [];
+    specs: { title: string, content: string }[] = [];
+    activeTab: 'assets' | 'specs' | 'maps' = 'maps';
+    mapAssets: { key: string, path: string }[] = [];
+    selectedMapKey: string | null = null;
+    selectedMapData: any = null;
+    mapGrid: (string | null)[][] = [];
+    hoveredObject: any | null = null;
+    hoveredWarp: any | null = null;
+
+    // ブラシモード用ステート
+    selectedBrush: TileType | 'EMPTY' | null = null;
+    selectedLayer: 'WALKABLE' | 'IMPASSABLE' = 'WALKABLE';
+    drawMode: 'point' | 'line' | 'rect' = 'point';
+    isDragging: boolean = false;
+    drawStartPos: { x: number, y: number } | null = null;
+    tempObject: any | null = null;
+
+    // Isometric Preview パン用ステート
+    isoPanX: number = 0;
+    isoPanY: number = 0;
+    isIsoPanning: boolean = false;
+    private lastIsoMousePos: { x: number, y: number } | null = null;
+
+    constructor(private assetLoader: AssetLoaderService) { }
+
+    async ngOnInit(): Promise<void> {
+        // 全てのアセットのロードを確実にする
+        await this.assetLoader.loadAssets();
+
+        const manifest = this.assetLoader.manifest;
+        const entries = Object.entries(manifest);
+
+        const allAssets = entries.map(([key, path]) => {
+            let type: 'image' | 'json' | 'other' = 'other';
+            if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.webp')) {
+                type = 'image';
+            } else if (path.endsWith('.json')) {
+                type = 'json';
+            }
+            return { key, path, type };
+        });
+
+        this.mapAssets = allAssets
+            .filter(a => a.type === 'json' && a.key.startsWith('map_'))
+            .map(a => ({ key: a.key, path: a.path }));
+
+        // Asset 一覧には JSON を含めない
+        this.assets = allAssets.filter(a => a.type !== 'json');
+
+        this.specs = [
+            { title: 'Map System', content: 'documents/map/map-spec.md' },
+            { title: 'Player Movement', content: 'documents/player-behavor/movement-spec.md' },
+            { title: 'Input & Click Event', content: 'documents/click-event/input-spec.md' }
+        ];
+
+        if (this.mapAssets.length > 0) {
+            this.selectMap(this.mapAssets[0].key);
+            // デフォルトのブラシを選択
+            this.selectBrush('GRASS');
+        }
+    }
+
+    ngAfterViewInit(): void {
+        this.renderIsoPreview();
+    }
+
+    setTab(tab: 'assets' | 'specs' | 'maps'): void {
+        this.activeTab = tab;
+        if (tab === 'maps') {
+            setTimeout(() => this.renderIsoPreview(), 0);
+        }
+    }
+
+    selectMap(key: string): void {
+        this.selectedMapKey = key;
+        const data = this.assetLoader.getData(key);
+        // 編集のためにディープコピー
+        this.selectedMapData = JSON.parse(JSON.stringify(data));
+        if (this.selectedMapData) {
+            // マップ切り替え時にパンをリセット
+            this.isoPanX = 0;
+            this.isoPanY = 0;
+            this.buildPreviewGrid();
+            this.renderIsoPreview();
+        }
+    }
+
+    private buildPreviewGrid(): void {
+        if (!this.selectedMapData) return;
+        const { width, height } = this.selectedMapData.config || { width: 20, height: 20 };
+        this.mapGrid = Array.from({ length: height }, () => Array(width).fill(null));
+
+        const allObjects = [...(this.selectedMapData.objects || [])];
+        if (this.tempObject) {
+            allObjects.push(this.tempObject);
+        }
+
+        for (const obj of allObjects) {
+            const { x, y, w, h, layer, type, shape, length, direction } = obj;
+            const drawType = type || 'EMPTY';
+
+            const fill = (ix: number, iy: number) => {
+                if (iy >= 0 && iy < height && ix >= 0 && ix < width) {
+                    this.mapGrid[iy][ix] = `${layer}:${drawType}`;
+                }
+            };
+
+            if (shape === 'rect') {
+                for (let ry = y; ry < y + (h || 1); ry++) {
+                    for (let rx = x; rx < x + (w || 1); rx++) {
+                        fill(rx, ry);
+                    }
+                }
+            } else if (shape === 'line') {
+                for (let i = 0; i < (length || 0); i++) {
+                    const lx = direction === 'horizontal' ? x + i : x;
+                    const ly = direction === 'vertical' ? y + i : y;
+                    fill(lx, ly);
+                }
+            } else if (shape === 'point') {
+                fill(x, y);
+            }
+        }
+    }
+
+    /** プレビューやグリッド用の色取得ヘルパー */
+    getTileColor(tileSpec: string | null): string {
+        if (!tileSpec) return '#222';
+        // "LAYER:TYPE" 形式か "TYPE" 単体かどちらでも対応
+        const type = tileSpec.includes(':') ? tileSpec.split(':')[1] : tileSpec;
+        const config = (this.tileConfig as any)[type];
+        return config ? this.colorToHex(config.color) : '#222';
+    }
+
+    /** 数値カラーをCSSヘックス文字列に変換 */
+    colorToHex(color: number): string {
+        return '#' + color.toString(16).padStart(6, '0').toUpperCase();
+    }
+
+    /** ブラシ選択 */
+    selectBrush(type: string): void {
+        this.selectedBrush = type as (TileType | 'EMPTY');
+    }
+
+    /** ブラシ適用 */
+    applyBrush(x: number, y: number, event?: MouseEvent): void {
+        if (!this.selectedBrush || !this.selectedMapData) return;
+
+        if (event) {
+            if (event.type === 'mousedown') {
+                this.isDragging = true;
+                this.drawStartPos = { x, y };
+
+                if (this.drawMode === 'point') {
+                    this.executePointDraw(x, y);
+                } else {
+                    this.calculateTempObject(x, y);
+                }
+            } else if (event.type === 'mouseenter') {
+                // ドラッグ中でない（またはクリックされていない）場合は何もしない
+                // これにより、単なるホバーで不必要な再描画走るのを防ぐ
+                if (!this.isDragging || event.buttons !== 1) {
+                    return;
+                }
+
+                if (this.drawMode === 'point') {
+                    this.executePointDraw(x, y);
+                } else {
+                    this.calculateTempObject(x, y);
+                }
+            }
+        }
+    }
+
+    private executePointDraw(x: number, y: number): void {
+        const type = this.selectedBrush === 'EMPTY' ? null : this.selectedBrush;
+        const layer = this.selectedLayer;
+
+        this.selectedMapData.objects = (this.selectedMapData.objects || []).filter((obj: any) => {
+            return !(obj.x === x && obj.y === y && obj.layer === layer && obj.shape === 'point');
+        });
+
+        if (type !== null) {
+            this.selectedMapData.objects.push({
+                layer: layer,
+                x: x,
+                y: y,
+                type: type,
+                shape: 'point'
+            });
+        } else {
+            // 消しゴムモード (type === null) の場合、その座標にある矩形や線も削除対象にする
+            this.cleanupObjectsAtPoint(x, y, layer);
+        }
+
+        this.buildPreviewGrid();
+        this.renderIsoPreview();
+    }
+
+    private calculateTempObject(currX: number, currY: number): void {
+        if (!this.drawStartPos || !this.selectedBrush) return;
+        const start = this.drawStartPos;
+        const type = this.selectedBrush === 'EMPTY' ? null : this.selectedBrush as TileType;
+
+        if (this.drawMode === 'rect') {
+            const x = Math.min(start.x, currX);
+            const y = Math.min(start.y, currY);
+            const w = Math.abs(currX - start.x) + 1;
+            const h = Math.abs(currY - start.y) + 1;
+            this.tempObject = { layer: this.selectedLayer, x, y, w, h, type, shape: 'rect' };
+        } else if (this.drawMode === 'line') {
+            const dx = Math.abs(currX - start.x);
+            const dy = Math.abs(currY - start.y);
+            if (dx >= dy) {
+                const x = Math.min(start.x, currX);
+                this.tempObject = { layer: this.selectedLayer, x, y: start.y, length: dx + 1, direction: 'horizontal', type, shape: 'line' };
+            } else {
+                const y = Math.min(start.y, currY);
+                this.tempObject = { layer: this.selectedLayer, x: start.x, y, length: dy + 1, direction: 'vertical', type, shape: 'line' };
+            }
+        }
+
+        this.buildPreviewGrid();
+        this.renderIsoPreview();
+    }
+
+    /** ドラッグ終了 */
+    @HostListener('window:mouseup')
+    finishDragging(): void {
+        if (this.isDragging && this.tempObject && this.drawMode !== 'point') {
+            // 暫定オブジェクトを正式に追加
+            if (this.tempObject.type !== null) {
+                this.selectedMapData.objects.push({ ...this.tempObject });
+            } else {
+                // 消しゴムモードなら範囲内のpointを削除（簡易実装）
+                this.cleanupObjectsInRange(this.tempObject);
+            }
+        }
+        this.isDragging = false;
+        this.drawStartPos = null;
+        this.tempObject = null;
+        this.buildPreviewGrid();
+        this.renderIsoPreview();
+    }
+
+    private cleanupObjectsInRange(area: any): void {
+        this.selectedMapData.objects = (this.selectedMapData.objects || []).filter((obj: any) => {
+            if (obj.layer !== area.layer) return true;
+            if (area.shape === 'rect') {
+                return !(obj.x >= area.x && obj.x < area.x + area.w && obj.y >= area.y && obj.y < area.y + area.h);
+            } else if (area.shape === 'line') {
+                if (area.direction === 'horizontal') {
+                    return !(obj.y === area.y && obj.x >= area.x && obj.x < area.x + area.length);
+                } else {
+                    return !(obj.x === area.x && obj.y >= area.y && obj.y < area.y + area.length);
+                }
+            }
+            return true;
+        });
+    }
+
+    /** 指定座標にあるオブジェクトを削除（消しゴム用） */
+    private cleanupObjectsAtPoint(x: number, y: number, layer: string): void {
+        this.selectedMapData.objects = (this.selectedMapData.objects || []).filter((obj: any) => {
+            if (obj.layer !== layer) return true;
+            if (obj.shape === 'point') {
+                return !(obj.x === x && obj.y === y);
+            } else if (obj.shape === 'rect') {
+                return !(x >= obj.x && x < obj.x + (obj.w || 1) && y >= obj.y && y < obj.y + (obj.h || 1));
+            } else if (obj.shape === 'line') {
+                if (obj.direction === 'horizontal') {
+                    return !(y === obj.y && x >= obj.x && x < obj.x + (obj.length || 0));
+                } else {
+                    return !(x === obj.x && y >= obj.y && y < obj.y + (obj.length || 0));
+                }
+            }
+            return true;
+        });
+    }
+
+    /** JSON エクスポート */
+    exportMapJson(): void {
+        if (!this.selectedMapData) return;
+        const json = JSON.stringify(this.selectedMapData, null, 2);
+        navigator.clipboard.writeText(json).then(() => {
+            alert('Map JSON copied to clipboard!');
+        });
+    }
+
+    /** オブジェクト削除 */
+    removeObject(obj: any): void {
+        if (!this.selectedMapData) return;
+        this.selectedMapData.objects = (this.selectedMapData.objects || []).filter((o: any) => o !== obj);
+        this.buildPreviewGrid();
+        this.renderIsoPreview();
+    }
+
+    private renderIsoPreview(): void {
+        if (!this._isoCanvas || !this.selectedMapData || !this.mapGrid.length) return;
+
+        const canvas = this._isoCanvas.nativeElement;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const config = this.selectedMapData.config || { width: 20, height: 20 };
+        const { width, height } = config;
+        const tileW = 16; // プレビュー用のタイル幅 (縮小)
+        const tileH = 8;  // プレビュー用のタイル高さ (縮小)
+
+        // キャンバスサイズを親要素に合わせるか、固定にする
+        // ここでは親要素の幅を活用しつつ、高さはコンテンツに合わせる
+        const container = canvas.parentElement;
+        if (container) {
+            canvas.width = container.clientWidth;
+            canvas.height = 400; // 固定の高さにするか、CSSで制御
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 中心をオフセット (パンを考慮)
+        const offsetX = (canvas.width / 2) + this.isoPanX;
+        const offsetY = 50 + this.isoPanY; // 少し余裕を持たせる
+
+        // タイル描画の補助関数
+        const drawIsoTile = (x: number, y: number, color: string, isWall: boolean = false, highlight: boolean = false) => {
+            const sx = offsetX + (x - y) * (tileW / 2);
+            const sy = offsetY + (x + y) * (tileH / 2);
+
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + tileW / 2, sy + tileH / 2);
+            ctx.lineTo(sx, sy + tileH);
+            ctx.lineTo(sx - tileW / 2, sy + tileH / 2);
+            ctx.closePath();
+
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            if (highlight) {
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fill();
+            } else {
+                ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            if (isWall) {
+                // 壁の側面
+                const wallH = 6;
+                ctx.beginPath();
+                ctx.moveTo(sx - tileW / 2, sy + tileH / 2);
+                ctx.lineTo(sx, sy + tileH);
+                ctx.lineTo(sx, sy + tileH + wallH);
+                ctx.lineTo(sx - tileW / 2, sy + tileH / 2 + wallH);
+                ctx.closePath();
+                ctx.fillStyle = highlight ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(sx + tileW / 2, sy + tileH / 2);
+                ctx.lineTo(sx, sy + tileH);
+                ctx.lineTo(sx, sy + tileH + wallH);
+                ctx.lineTo(sx + tileW / 2, sy + tileH / 2 + wallH);
+                ctx.closePath();
+                ctx.fillStyle = highlight ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+                ctx.fill();
+            }
+        };
+
+        // レイヤーごとに描画 (簡略化)
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const cellValue = this.mapGrid[y][x];
+                const highlighted = this.isHighlighted(x, y);
+                if (cellValue) {
+                    const [layer, type] = cellValue.split(':');
+                    const config = this.tileConfig[type as TileType];
+                    const color = config ? this.colorToHex(config.color) : '#222';
+                    drawIsoTile(x, y, color, type === 'WALL', highlighted);
+                } else {
+                    drawIsoTile(x, y, '#222', false, highlighted);
+                }
+            }
+        }
+    }
+
+    onObjectHover(obj: any): void {
+        this.hoveredObject = obj;
+        this.renderIsoPreview();
+    }
+
+    onObjectLeave(): void {
+        this.hoveredObject = null;
+        this.renderIsoPreview();
+    }
+
+    onWarpHover(warp: any): void {
+        this.hoveredWarp = warp;
+        this.renderIsoPreview();
+    }
+
+    onWarpLeave(): void {
+        this.hoveredWarp = null;
+        this.renderIsoPreview();
+    }
+
+    isHighlighted(x: number, y: number): boolean {
+        if (this.hoveredWarp) {
+            return this.hoveredWarp.x === x && this.hoveredWarp.y === y;
+        }
+
+        if (this.hoveredObject) {
+            const obj = this.hoveredObject;
+            if (obj.shape === 'rect') {
+                return x >= obj.x && x < obj.x + (obj.w || 1) &&
+                    y >= obj.y && y < obj.y + (obj.h || 1);
+            } else if (obj.shape === 'line') {
+                if (obj.direction === 'horizontal') {
+                    return y === obj.y && x >= obj.x && x < obj.x + (obj.length || 0);
+                } else {
+                    return x === obj.x && y >= obj.y && y < obj.y + (obj.length || 0);
+                }
+            } else if (obj.shape === 'point') {
+                return x === obj.x && y === obj.y;
+            }
+        }
+
+        return false;
+    }
+
+    trackByCell(index: number, cell: any): string {
+        return index.toString();
+    }
+
+    trackByRow(index: number, row: any): string {
+        return index.toString();
+    }
+
+    // --- Isometric Preview Mouse Events ---
+
+    onIsoMouseDown(event: MouseEvent): void {
+        this.isIsoPanning = true;
+        this.lastIsoMousePos = { x: event.clientX, y: event.clientY };
+    }
+
+    @HostListener('window:mousemove', ['$event'])
+    onIsoMouseMove(event: MouseEvent): void {
+        if (!this.isIsoPanning || !this.lastIsoMousePos) return;
+
+        const dx = event.clientX - this.lastIsoMousePos.x;
+        const dy = event.clientY - this.lastIsoMousePos.y;
+
+        this.isoPanX += dx;
+        this.isoPanY += dy;
+
+        this.lastIsoMousePos = { x: event.clientX, y: event.clientY };
+        this.renderIsoPreview();
+    }
+
+    @HostListener('window:mouseup')
+    onIsoMouseUp(): void {
+        this.isIsoPanning = false;
+        this.lastIsoMousePos = null;
+    }
+}
