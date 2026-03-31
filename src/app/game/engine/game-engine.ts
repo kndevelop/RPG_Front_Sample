@@ -29,7 +29,7 @@ export class GameEngine {
     this.initMap();
     this.setupSubscriptions();
 
-    app.ticker.add((delta) => {
+    app.ticker.add((delta: number) => {
       const deltaSec = delta / 60;
 
       const prevX = Math.round(this.player.x);
